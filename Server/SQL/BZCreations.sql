@@ -143,6 +143,8 @@ create table flight_log (
 	arrival_date			timestamp
 );
 
+/* Procedures to populate all tables with data */
+
 create or replace procedure pop_airline(amount integer)
 	language plpgsql
 	as 
@@ -293,7 +295,6 @@ begin
 end;
 $$;
 
-
 create or replace procedure pop_flight_schedule_log(amount integer)
 	language plpgsql
 	as 
@@ -311,17 +312,24 @@ create or replace procedure pop_flight_reservation(amount integer)
 	as 
 $$
 declare 
-	passenger_id	int;
-	flight_plan_id	int;
-	class_id		int;
+	passenger_id			int;
+	flight_schedule_id		int;
+	max_schedule			int;
+	class_id				int;
+	start_date 				timestamp;
 begin 
 	for passenger_id in select id from passenger loop
-		for flight_plan_id in select id from flight_schedule loop
-			for class_id in select id from seat_class loop
-				insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
-					values (passenger_id, flight_plan_id, class_id, '10/10/2022 10:00', 60);
-			end loop;
-		end loop;
+		
+		select count(*) into max_schedule from flight_schedule;
+		select get_random_number(max_schedule) into flight_schedule_id
+		select get_random_number(3) into class_id;
+	
+		select fs2.departure_date into start_date
+			from flight_schedule fs2
+			where fs2.flight_schedule = flight_schedule_id;
+			
+		insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
+			values (passenger_id, flight_schedule_id, class_id, get_random_date(start_date, '-30 days'), 60);
 	end loop;
 	commit;
 end;
@@ -333,10 +341,26 @@ create or replace procedure pop_flight_booking(amount integer)
 $$
 declare 
 	flight_res_id 	int;
+	max_staff		int;
+	start_date 		timestamp;
 begin 
-	for flight_res_id in select id from flight_reservation loop
+	for flight_res_id in 
+		select id from flight_reservation fr
+			inner join flight_schedule fs2
+				on (fr.flight_schedule_id = fs2.id)
+			where fs2.cancelled is not true
+	loop
+		
+		select count(*) into max_staff from staff;
+	
+		select fs2.departure_date into start_date
+			from flight_reservation fr 
+			inner join flight_schedule fs2 
+				on (fr.flight_schedule_id = fs2.id)
+			where fr.id = flight_res_id;
+		
 		insert into flight_booking (flight_reservation_id, book_date, staff_id)
-			values (flight_res_id, '11/10/2022 3:06', 1);
+			values (flight_res_id, get_random_date(start_date,'-2 hour'), 1);
 	end loop;
 	commit;
 end;
@@ -446,6 +470,8 @@ begin
 end;
 $$;
 
+/* Functions */
+
 create or replace function get_random_number(max_value integer)
 	returns integer
 	language plpgsql
@@ -491,6 +517,8 @@ begin
 end;
 $$;
 
+/* Populate all data */
+
 create or replace procedure pop_all()
 	language plpgsql
 	as 
@@ -516,10 +544,8 @@ begin
 	call pop_flight_log();
 end;
 $$;
-
-
 call pop_all();
 
-
+select * from flight_schedule 
 
 
