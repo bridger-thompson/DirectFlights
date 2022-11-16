@@ -3,23 +3,23 @@ drop schema if exists zack_bridger cascade;
 create schema zack_bridger;
 set search_path to zack_bridger;
 
-drop table if exists passenger_manifest;
-drop table if exists payment;
-drop table if exists flight_booking;
-drop table if exists flight_reservation;
-drop table if exists available_plane;
-drop table if exists flight_route;
-drop table if exists passenger;
-drop table if exists plane_type_seat_class;
-drop table if exists seat_class;
-drop table if exists flight_log;
-drop table if exists flight_schedule;
-drop table if exists flight_schedule_log;
-drop table if exists airport;
-drop table if exists plane;
-drop table if exists plane_type;
-drop table if exists airline;
-drop table if exists staff;
+--drop table if exists passenger_manifest;
+--drop table if exists payment;
+--drop table if exists flight_booking;
+--drop table if exists flight_reservation;
+--drop table if exists available_plane;
+--drop table if exists flight_route;
+--drop table if exists passenger;
+--drop table if exists plane_type_seat_class;
+--drop table if exists seat_class;
+--drop table if exists flight_log;
+--drop table if exists flight_schedule;
+--drop table if exists flight_schedule_log;
+--drop table if exists airport;
+--drop table if exists plane;
+--drop table if exists plane_type;
+--drop table if exists airline;
+--drop table if exists staff;
 
 create table airline (
 	id 		serial primary key,
@@ -77,8 +77,7 @@ create table flight_route (
 	depart_airport_id		int references airport(id) not null,
 	arrival_airport_id		int references airport(id) not null,
 	date_created			timestamp not null,
-	date_retired			timestamp,
-	check (depart_airport_id <> arrival_airport_id)
+	date_retired			timestamp
 );
 
 create table flight_schedule (
@@ -89,7 +88,8 @@ create table flight_schedule (
 	arrival_date			timestamp not null,
 	departure_gate			varchar(5) not null,
 	arrival_gate			varchar(5) not null,
-	cancelled				bool not null
+	cancelled				bool not null,
+	check (arrival_date > departure_date)
 );
 
 create table flight_schedule_log (
@@ -99,7 +99,8 @@ create table flight_schedule_log (
 	arrival_date		timestamp not null,
 	departure_gate		varchar(5) not null,
 	arrival_gate		varchar(5) not null,
-	flight_schedule_id	int references flight_schedule(id) not null
+	flight_schedule_id	int references flight_schedule(id) not null,
+	check (arrival_date > departure_date)
 );
 
 create table flight_reservation (
@@ -139,7 +140,7 @@ create table flight_log (
 	depart_airport_id		int references airport(id) not null,
 	arrival_airport_id		int references airport(id),
 	depart_date				timestamp not null,
-	arrival_date			timestamp check (arrival_date > depart_date)
+	arrival_date			timestamp
 );
 
 create or replace procedure pop_airline(amount integer)
@@ -315,9 +316,9 @@ declare
 	class_id		int;
 begin 
 	for passenger_id in select id from passenger loop
-		for flight_plan_id in select id from flight_plan loop
+		for flight_plan_id in select id from flight_schedule loop
 			for class_id in select id from seat_class loop
-				insert into flight_reservation (passenger_id, flight_plan_id, class_id, reservation_date, seat_cost)
+				insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
 					values (passenger_id, flight_plan_id, class_id, '10/10/2022 10:00', 60);
 			end loop;
 		end loop;
@@ -341,19 +342,17 @@ begin
 end;
 $$;
 
-create or replace procedure pop_available_plane(amount integer)
+create or replace procedure pop_available_plane()
 	language plpgsql
 	as 
 $$
 declare 
 	plane_id	int;
 begin 
-	for i in 1..amount loop
-		for plane_id in select id from plane loop
-			insert into available_plane (plane_id, in_maintenence)
-				values (plane_id, get_random_bool());
-		end loop;		
-	end loop;	
+	for plane_id in select id from plane loop
+		insert into available_plane (plane_id, in_maintenence)
+			values (plane_id, get_random_bool());
+	end loop;		
 	commit;
 end;
 $$;
@@ -381,11 +380,11 @@ create or replace procedure pop_passenger_manifest(amount integer)
 $$
 declare 
 	flight_booking_id	int;
-	curs cursor for select flight_booking.id as id, flight_plan.departure_date as dep_date from flight_booking 
+	curs cursor for select flight_booking.id as id, flight_schedule.departure_date as dep_date from flight_booking 
 		inner join flight_reservation
 			on (flight_reservation.id = flight_booking.flight_reservation_id)
-		inner join flight_plan
-			on (flight_plan.id = flight_reservation.flight_plan_id);
+		inner join flight_schedule
+			on (flight_schedule.id = flight_reservation.flight_schedule_id);
 begin 
 	for flight in curs loop
 		insert into passenger_manifest (flight_booking_id, boarding_date, staff_id)
@@ -400,19 +399,19 @@ create or replace procedure pop_flight_log()
     as
 $$
 declare
-	flight_past_cursor cursor for select * from flight_schedule f where f.arrival_date <= now() and not f.cancelled;
-	flight_future_cursor cursor for select * from flight_schedule f where f.arrival_date > now() and not f.cancelled;
+	flight_past_cursor cursor for select * from flight_schedule f inner join flight_route fr on (f.flight_route_id=fr.id) where f.arrival_date <= now() and not f.cancelled;
+	flight_future_cursor cursor for select * from flight_schedule f inner join flight_route fr on (f.flight_route_id=fr.id) where f.arrival_date > now() and not f.cancelled;
 begin
     for flight in flight_past_cursor loop
         insert into flight_log (flight_schedule_id, depart_date, arrival_date, depart_airport_id, arrival_airport_id)
-        values (flight.id, get_random_date(flight.depart_date, '10 hours'), get_random_date(flight.arrival, '10 hours'), 
-       		flight.departure_airport_id, flight.arrival_airport_id);
+        values (flight.id, get_random_date(flight.departure_date, '10 hours'), get_random_date(flight.arrival_date, '10 hours'), 
+       		flight.depart_airport_id, flight.arrival_airport_id);
    	end loop;
    	commit;
    	for flight in flight_future_cursor loop
         insert into flight_log (flight_schedule_id, depart_date, arrival_date, depart_airport_id, arrival_airport_id)
-        values (flight.id, get_random_date(flight.depart_date, '10 hours'), null, 
-       		flight.departure_airport_id, null);
+        values (flight.id, get_random_date(flight.departure_date, '10 hours'), null, 
+       		flight.depart_airport_id, null);
     end loop;
    	commit;
 end;    
@@ -423,22 +422,27 @@ create or replace procedure pop_flight_route(amount integer)
 	as 
 $$
 declare 
-	max_airports	int;
-	start_date		timestamp;
-	airline_id		int;	
+	max_airports		int;
+	start_date			timestamp;
+	airline_id			int;	
+	depart_airport_id 	int;
+	arrival_airport_id	int;
 begin
 	select count(*) into max_airports from airport;
 	for i in 1..amount loop
 		for airline_id in select id from airline loop
-			start_date := get_random_date(now()::timestamp, '365 days');
-			insert into flight_route (depart_airport_id, arrival_airport_id, date_created, date_retired, airline_id)
-				values (get_random_number(max_airports), get_random_number(max_airports), start_date, null, airline_id);			
+			for depart_airport_id in select id from airport loop
+				for arrival_airport_id in select id from airport loop					
+					start_date := get_random_date(now()::timestamp, '365 days');
+					if depart_airport_id <> arrival_airport_id then
+						insert into flight_route (depart_airport_id, arrival_airport_id, date_created, date_retired, airline_id)
+							values (depart_airport_id, arrival_airport_id, start_date, null, airline_id);		
+					end if;					
+				end loop;				
+			end loop;			
 		end loop;	
 	end loop;
 	commit;
-	exception
-		when check_violation then
-			raise notice 'Depart and arrival same value';	
 end;
 $$;
 
@@ -448,7 +452,7 @@ create or replace function get_random_number(max_value integer)
 	as
 $$
 begin
-	return floor(random() * (max_value - 1) + 1)::int;
+	return floor(random() * (max_value) + 1)::int;
 end;
 $$;
 
@@ -483,7 +487,7 @@ create or replace function get_random_bool()
 	as 
 $$
 begin 
-	return random() > 0.9;
+	return random() >= 0.9;
 end;
 $$;
 
@@ -497,7 +501,7 @@ begin
 	call pop_airport(3);
 	call pop_plane_type(3);
 	call pop_plane(5);
-	call pop_available_plane(5);
+	call pop_available_plane();
 	call pop_passenger(5);
 	call pop_seat_class(3);
 	call pop_plane_type_seat_class(0);
@@ -512,312 +516,9 @@ begin
 	call pop_flight_log();
 end;
 $$;
-select * from flight_route fr 
+
+
 call pop_all();
-
-select * from passenger_manifest;
-/*
-id|flight_booking_id|boarding_date|staff_id|
---+-----------------+-------------+--------+
- 1|                1|   2022-11-10|       2|
- 2|                2|   2022-11-10|       2|
- 3|                3|   2022-11-10|       2|
- 4|                4|   2022-11-10|       2|
- 5|                5|   2022-11-10|       2|
- 6|                6|   2022-11-10|       2|
- 7|                7|   2022-11-10|       2|
- 8|                8|   2022-11-10|       2|
- 9|                9|   2022-11-10|       2|
-10|               10|   2022-11-10|       2|
-11|               11|   2022-11-10|       2|
-12|               12|   2022-11-10|       2|
-13|               13|   2022-11-10|       2|
-14|               14|   2022-11-10|       2|
-15|               15|   2022-11-10|       2|
-16|               16|   2022-11-10|       2|
-17|               17|   2022-11-10|       2|
-18|               18|   2022-11-10|       2|
-19|               19|   2022-11-10|       2|
-20|               20|   2022-11-10|       2|
-21|               21|   2022-11-10|       2|
-22|               22|   2022-11-10|       2|
-23|               23|   2022-11-10|       2|
-24|               24|   2022-11-10|       2|
-25|               25|   2022-11-10|       2|
-26|               26|   2022-11-10|       2|
-27|               27|   2022-11-10|       2|
-28|               28|   2022-11-10|       2|
-29|               29|   2022-11-10|       2|
-30|               30|   2022-11-10|       2|
- */
-
-select * from payment;
-/*
-id|staff_id|flight_reservation_id|payment_date|amount|
---+--------+---------------------+------------+------+
- 1|       1|                    1|  2022-11-11|    60|
- 2|       1|                    2|  2022-11-11|    60|
- 3|       1|                    3|  2022-11-11|    60|
- 4|       1|                    4|  2022-11-11|    60|
- 5|       1|                    5|  2022-11-11|    60|
- 6|       1|                    6|  2022-11-11|    60|
- 7|       1|                    7|  2022-11-11|    60|
- 8|       1|                    8|  2022-11-11|    60|
- 9|       1|                    9|  2022-11-11|    60|
-10|       1|                   10|  2022-11-11|    60|
-11|       1|                   11|  2022-11-11|    60|
-12|       1|                   12|  2022-11-11|    60|
-13|       1|                   13|  2022-11-11|    60|
-14|       1|                   14|  2022-11-11|    60|
-15|       1|                   15|  2022-11-11|    60|
-16|       1|                   16|  2022-11-11|    60|
-17|       1|                   17|  2022-11-11|    60|
-18|       1|                   18|  2022-11-11|    60|
-19|       1|                   19|  2022-11-11|    60|
-20|       1|                   20|  2022-11-11|    60|
-21|       1|                   21|  2022-11-11|    60|
-22|       1|                   22|  2022-11-11|    60|
-23|       1|                   23|  2022-11-11|    60|
-24|       1|                   24|  2022-11-11|    60|
-25|       1|                   25|  2022-11-11|    60|
-26|       1|                   26|  2022-11-11|    60|
-27|       1|                   27|  2022-11-11|    60|
-28|       1|                   28|  2022-11-11|    60|
-29|       1|                   29|  2022-11-11|    60|
-30|       1|                   30|  2022-11-11|    60|
-31|       1|                    1|  2022-11-12|  -200|
- */
-
-select * from flight_booking;
-/*
-id|flight_reservation_id|book_date |staff_id|
---+---------------------+----------+--------+
- 1|                    1|2022-11-10|       1|
- 2|                    2|2022-11-10|       1|
- 3|                    3|2022-11-10|       1|
- 4|                    4|2022-11-10|       1|
- 5|                    5|2022-11-10|       1|
- 6|                    6|2022-11-10|       1|
- 7|                    7|2022-11-10|       1|
- 8|                    8|2022-11-10|       1|
- 9|                    9|2022-11-10|       1|
-10|                   10|2022-11-10|       1|
-11|                   11|2022-11-10|       1|
-12|                   12|2022-11-10|       1|
-13|                   13|2022-11-10|       1|
-14|                   14|2022-11-10|       1|
-15|                   15|2022-11-10|       1|
-16|                   16|2022-11-10|       1|
-17|                   17|2022-11-10|       1|
-18|                   18|2022-11-10|       1|
-19|                   19|2022-11-10|       1|
-20|                   20|2022-11-10|       1|
-21|                   21|2022-11-10|       1|
-22|                   22|2022-11-10|       1|
-23|                   23|2022-11-10|       1|
-24|                   24|2022-11-10|       1|
-25|                   25|2022-11-10|       1|
-26|                   26|2022-11-10|       1|
-27|                   27|2022-11-10|       1|
-28|                   28|2022-11-10|       1|
-29|                   29|2022-11-10|       1|
-30|                   30|2022-11-10|       1|
-31|                   30|2022-10-12|       1|
-34|                   34|2022-10-12|       1|
- */
-
-select * from flight_reservation;
-/*
-id|passenger_id|flight_plan_id|class_id|reservation_date|seat_cost|
---+------------+--------------+--------+----------------+---------+
- 1|           1|             1|       1|      2022-10-10|       60|
- 2|           1|             1|       2|      2022-10-10|       60|
- 3|           1|             1|       3|      2022-10-10|       60|
- 4|           1|             2|       1|      2022-10-10|       60|
- 5|           1|             2|       2|      2022-10-10|       60|
- 6|           1|             2|       3|      2022-10-10|       60|
- 7|           2|             1|       1|      2022-10-10|       60|
- 8|           2|             1|       2|      2022-10-10|       60|
- 9|           2|             1|       3|      2022-10-10|       60|
-10|           2|             2|       1|      2022-10-10|       60|
-11|           2|             2|       2|      2022-10-10|       60|
-12|           2|             2|       3|      2022-10-10|       60|
-13|           3|             1|       1|      2022-10-10|       60|
-14|           3|             1|       2|      2022-10-10|       60|
-15|           3|             1|       3|      2022-10-10|       60|
-16|           3|             2|       1|      2022-10-10|       60|
-17|           3|             2|       2|      2022-10-10|       60|
-18|           3|             2|       3|      2022-10-10|       60|
-19|           4|             1|       1|      2022-10-10|       60|
-20|           4|             1|       2|      2022-10-10|       60|
-21|           4|             1|       3|      2022-10-10|       60|
-22|           4|             2|       1|      2022-10-10|       60|
-23|           4|             2|       2|      2022-10-10|       60|
-24|           4|             2|       3|      2022-10-10|       60|
-25|           5|             1|       1|      2022-10-10|       60|
-26|           5|             1|       2|      2022-10-10|       60|
-27|           5|             1|       3|      2022-10-10|       60|
-28|           5|             2|       1|      2022-10-10|       60|
-29|           5|             2|       2|      2022-10-10|       60|
-30|           5|             2|       3|      2022-10-10|       60|
- */
-
-select * from maintenance;
-/*
-id|plane_id|start_date|end_date  |description        |
---+--------+----------+----------+-------------------+
- 1|       2|2022-11-10|2022-11-11|General Maintenance|
- */
-
-select * from current_flight;
-/*
-id|flight_plan_id|take_off_airport_id|landing_airport_id|take_off_time|landing_time|
---+--------------+-------------------+------------------+-------------+------------+
- 1|             1|                  2|                 1|   2022-11-10|            |
- 2|             2|                  3|                 1|   2022-11-10|            |
- */
-
-select * from passenger;
-/*
-id|name      |
---+----------+
- 1|Passenger1|
- 2|Passenger2|
- 3|Passenger3|
- 4|Passenger4|
- 5|Passenger5|
- */
-
-select * from plane_type_seat_class;
-/*
-id|plane_type_id|seat_class_id|capacity|
---+-------------+-------------+--------+
- 1|            1|            1|      40|
- 2|            1|            2|      40|
- 3|            1|            3|      40|
- 4|            2|            1|      40|
- 5|            2|            2|      40|
- 6|            2|            3|      40|
- 7|            3|            1|      40|
- 8|            3|            2|      40|
- 9|            3|            3|      40|
- */
-
-select * from seat_class;
-/*
-id|name  |
---+------+
- 1|Class1|
- 2|Class2|
- 3|Class3|
- */
-
-select * from flight_plan;
-/*
-id|arrival_airport_id|departure_airport_id|plane_id|departure_date|arrival_date|departure_gate|arrival_gate|
---+------------------+--------------------+--------+--------------+------------+--------------+------------+
- 1|                 1|                   2|       1|    2022-11-10|  2022-11-10|A1            |B2          |
- 2|                 1|                   3|       2|    2022-11-10|  2022-11-11|C4            |A2          |
- */
-
-select * from flight_plan_log;
-/*
-id|plane_id|departure_date|arrival_date|departure_gate|arrival_gate|new_plane_id|new_departure_date|new_arrival_date|new_departure_gate|new_arrival_gate|
---+--------+--------------+------------+--------------+------------+------------+------------------+----------------+------------------+----------------+
- 1|       3|    2022-11-10|  2022-11-10|A1            |B2          |           1|                  |                |                  |                |
- 2|       2|    2022-11-10|  2022-11-11|B6            |A2          |            |                  |                |C4                |                |
- */
-
-select * from airport;
-/*
-id|name    |address |
---+--------+--------+
- 1|Airport1|Address1|
- 2|Airport2|Address2|
- 3|Airport3|Address3|
- */
-
-select * from plane;
-/*
-id|plane_type_id|airline_id|
---+-------------+----------+
- 1|            1|         1|
- 2|            1|         1|
- 3|            1|         1|
- 4|            1|         1|
- 5|            1|         1|
- 6|            2|         1|
- 7|            2|         1|
- 8|            2|         1|
- 9|            2|         1|
-10|            2|         1|
-11|            3|         1|
-12|            3|         1|
-13|            3|         1|
-14|            3|         1|
-15|            3|         1|
-16|            1|         2|
-17|            1|         2|
-18|            1|         2|
-19|            1|         2|
-20|            1|         2|
-21|            2|         2|
-22|            2|         2|
-23|            2|         2|
-24|            2|         2|
-25|            2|         2|
-26|            3|         2|
-27|            3|         2|
-28|            3|         2|
-29|            3|         2|
-30|            3|         2|
-31|            1|         3|
-32|            1|         3|
-33|            1|         3|
-34|            1|         3|
-35|            1|         3|
-36|            2|         3|
-37|            2|         3|
-38|            2|         3|
-39|            2|         3|
-40|            2|         3|
-41|            3|         3|
-42|            3|         3|
-43|            3|         3|
-44|            3|         3|
-45|            3|         3|
- */
-
-select * from plane_type;
-/*
-id|name |
---+-----+
- 1|Type1|
- 2|Type2|
- 3|Type3|
- */
-
-select * from airline;
-/*
-id|name    |
---+--------+
- 1|Airline1|
- 2|Airline2|
- 3|Airline3|
- */
-
-select * from staff;
-/*
-id|name  |
---+------+
- 1|Staff1|
- 2|Staff2|
- 3|Staff3|
- 4|Staff4|
- 5|Staff5|
- */
-
-
 
 
 
