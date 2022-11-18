@@ -331,18 +331,22 @@ declare
 	start_date 				timestamp;
 begin 
 	for passenger_id in select id from passenger loop
-		
-		select id into flight_schedule_id 
-			from flight_schedule
-			order by random() limit 1;
-			
-		select get_random_number(3) into class_id;	
-		select fs2.departure_date into start_date
-			from flight_schedule fs2
-			where fs2.id = flight_schedule_id;
-			
-		insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
-			values (passenger_id, flight_schedule_id, class_id, get_random_date(start_date, '-30 days'), 60);
+		begin
+			select id into flight_schedule_id 
+				from flight_schedule
+				order by random() limit 1;
+				
+			select get_random_number(3) into class_id;	
+			select fs2.departure_date into start_date
+				from flight_schedule fs2
+				where fs2.id = flight_schedule_id;
+				
+			insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
+				values (passenger_id, flight_schedule_id, class_id, get_random_date(start_date, '-30 days'), 60);
+			exception 
+				when sqlstate '50003' then
+					null;
+		end;
 	end loop;
 	commit;
 end;
@@ -363,20 +367,24 @@ begin
 				on (fr.flight_schedule_id = fs2.id)
 			where fs2.cancelled is not true
 	loop
+		begin
+			select id into staff_id 
+				from staff
+				where id != 1
+				order by random() limit 1;
 		
-		select id into staff_id 
-			from staff
-			where id != 1
-			order by random() limit 1;
-	
-		select fs2.departure_date into start_date
-			from flight_reservation fr 
-			inner join flight_schedule fs2 
-				on (fr.flight_schedule_id = fs2.id)
-			where fr.id = flight_res_id;
-		
-		insert into flight_booking (flight_reservation_id, book_date, staff_id)
-			values (flight_res_id, get_random_date(start_date,'-2 hour'), staff_id);
+			select fs2.departure_date into start_date
+				from flight_reservation fr 
+				inner join flight_schedule fs2 
+					on (fr.flight_schedule_id = fs2.id)
+				where fr.id = flight_res_id;
+			
+			insert into flight_booking (flight_reservation_id, book_date, staff_id)
+				values (flight_res_id, get_random_date(start_date,'-2 hour'), staff_id);
+			exception when
+				sqlstate '50004' then
+					null;
+		end;
 	end loop;
 	commit;
 end;
@@ -514,7 +522,7 @@ declare
 	letter 	text;
 	num 	int;
 begin
-	select upper(chr(int4(random()*26)+65)) into letter;
+	select upper(chr(int4(random()*25)+65)) into letter;
 	select floor(random() * 9 + 1)::int into num;
 	return letter || num;
 end;
@@ -576,7 +584,7 @@ begin
 			and ptsc.seat_class_id = 3 
 			and ptsc.plane_type_id = p_type_id;
 	if overbook_capacity - current_capacity = 0 then
-		raise exception 'Flight is already overbooked';
+		raise exception 'Flight is already overbooked' using errcode = 50003;
 	else
 		return new;	
 	end if;
@@ -607,7 +615,6 @@ create trigger flight_reservation_after_insert
 	for each row
 	execute function create_reservation_payment();
 	
-
 create or replace function check_plane_capacity()
 	returns trigger 
 	language plpgsql
@@ -663,7 +670,7 @@ begin
 		if current_cap < class_cap then
 			return new;
 		else
-			raise exception 'Flight class full';
+			raise exception 'Flight class full' using errcode = 50004;
 		end if;
 	end if;	
 end;
@@ -822,7 +829,7 @@ begin
 	call pop_plane_type(3);
 	call pop_plane(5);
 	call pop_available_plane();
-	call pop_passenger(100);
+	call pop_passenger(1000);
 	call pop_seat_class(3);
 	call pop_plane_type_seat_class(0);
 	call pop_flight_route(10);

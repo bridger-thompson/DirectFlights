@@ -1,12 +1,3 @@
-
-
-
-
-insert into flight_booking (flight_reservation_id, book_date, staff_id)
-	values (31, '10/12/2022 12:00', 1);
-
-select * from flight_booking;
-
 create or replace function calculate_seats_sold(plan_id integer)
 	returns float 
 	language plpgsql
@@ -37,7 +28,7 @@ begin
 end;
 $$;
 
-select calculate_seats_sold(1);
+select calculate_seats_sold(25);
 /*
 calculate_seats_sold|
 --------------------+
@@ -75,7 +66,7 @@ begin
 	
 	select count(*) into reservation_num
 		from flight_reservation fr 
-		where fr.flight_schedule_id = 1;
+		where fr.flight_schedule_id = plan_id;
 	if plane_cap - reservation_num > 0 then
 		return 0;
 	else
@@ -84,7 +75,7 @@ begin
 end;
 $$;	
 
-select calculate_overbooking_payment(1);
+select calculate_overbooking_payment(25);
 /*
 calculate_overbooking_payment|
 -----------------------------+
