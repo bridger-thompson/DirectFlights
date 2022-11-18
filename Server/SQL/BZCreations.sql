@@ -268,32 +268,39 @@ create or replace procedure pop_flight_schedule(amount integer, date_range inter
 	as 
 $$
 declare 
-	route_max	int;
-	plane_max	int;
+	route_id	int;
+	plane_id	int;
 	air_id 	int;
 	start_date 	timestamp;
 begin 
 	for i in 1..amount loop
 		for air_id in select id from airline loop
 			begin
-				select count(*) into plane_max
+				select ap.id into plane_id
 					from available_plane ap
 					inner join plane p 
 						on (ap.plane_id = p.id)
-					where in_maintenence = false;
+					where in_maintenence = false
+					order by random() limit 1;
 				
-				select count(*) into route_max
+				select fr.id into route_id
 					from flight_route fr
-					where fr.airline_id = air_id;
+					where fr.airline_id = air_id
+					order by random() limit 1;
 				
 				start_date := get_random_date(now()::timestamp, date_range);
 				
 				insert into flight_schedule (flight_route_id, available_plane_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
-					values (get_random_number(route_max), get_random_number(plane_max), 
+					values (route_id, plane_id, 
 							start_date, get_random_date(start_date, '10 hours'),
 							get_random_gate(), get_random_gate(), get_random_bool());	
-			exception when others 
-				then null;
+			exception when 
+				sqlstate '50001' then
+					null;
+			 	when
+				sqlstate '50002' then
+					null;
+					
 			end;
 		end loop;		
 	end loop;
@@ -320,19 +327,19 @@ $$
 declare 
 	passenger_id			int;
 	flight_schedule_id		int;
-	max_schedule			int;
 	class_id				int;
 	start_date 				timestamp;
 begin 
 	for passenger_id in select id from passenger loop
 		
-		select count(*) into max_schedule from flight_schedule;
-		select get_random_number(max_schedule) into flight_schedule_id;
-		select get_random_number(3) into class_id;
-	
+		select id into flight_schedule_id 
+			from flight_schedule
+			order by random() limit 1;
+			
+		select get_random_number(3) into class_id;	
 		select fs2.departure_date into start_date
 			from flight_schedule fs2
-			where fs2.flight_schedule = flight_schedule_id;
+			where fs2.id = flight_schedule_id;
 			
 		insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
 			values (passenger_id, flight_schedule_id, class_id, get_random_date(start_date, '-30 days'), 60);
@@ -347,17 +354,20 @@ create or replace procedure pop_flight_booking(amount integer)
 $$
 declare 
 	flight_res_id 	int;
-	max_staff		int;
+	staff_id		int;
 	start_date 		timestamp;
 begin 
 	for flight_res_id in 
-		select id from flight_reservation fr
+		select fr.id from flight_reservation fr
 			inner join flight_schedule fs2
 				on (fr.flight_schedule_id = fs2.id)
 			where fs2.cancelled is not true
 	loop
 		
-		select count(*) into max_staff from staff;
+		select id into staff_id 
+			from staff
+			where id != 1
+			order by random() limit 1;
 	
 		select fs2.departure_date into start_date
 			from flight_reservation fr 
@@ -366,7 +376,7 @@ begin
 			where fr.id = flight_res_id;
 		
 		insert into flight_booking (flight_reservation_id, book_date, staff_id)
-			values (flight_res_id, get_random_date(start_date,'-2 hour'), 1);
+			values (flight_res_id, get_random_date(start_date,'-2 hour'), staff_id);
 	end loop;
 	commit;
 end;
@@ -568,18 +578,35 @@ begin
 	if overbook_capacity - current_capacity = 0 then
 		raise exception 'Flight is already overbooked';
 	else
-		insert into payment (staff_id, flight_reservation_id, payment_date, amount)
-			values (1, new.id, new.reservation_date, new.seat_cost);
 		return new;	
 	end if;
 end;
 $$;
 
-create trigger flight_reservation_insert
+create trigger flight_reservation_before_insert
 	before insert 
 	on flight_reservation
 	for each row
 	execute function check_overbooked();
+
+create or replace function create_reservation_payment()
+	returns trigger
+	language plpgsql
+	as
+$$
+begin
+	insert into payment (staff_id, flight_reservation_id, payment_date, amount)
+		values (1, new.id, new.reservation_date, new.seat_cost);
+	return new;
+end;
+$$;
+
+create trigger flight_reservation_after_insert
+	after insert 
+	on flight_reservation
+	for each row
+	execute function create_reservation_payment();
+	
 
 create or replace function check_plane_capacity()
 	returns trigger 
@@ -636,20 +663,87 @@ begin
 		if current_cap < class_cap then
 			return new;
 		else
-			insert into payment (staff_id, flight_reservation_id, payment_date, amount)
-				values (new.staff_id, new.flight_reservation_id, new.book_date, -200);
 			raise exception 'Flight class full';
 		end if;
 	end if;	
 end;
 $$;
 
-create trigger flight_booking_insert
+create trigger flight_booking_before_insert
 	before insert 
 	on flight_booking
 	for each row
 	execute function check_plane_capacity();
 
+create or replace function create_booking_refund_payment()
+	returns trigger
+	language plpgsql
+	as 
+$$
+declare 
+	class_cap 		int;
+	fp_id			int;
+	p_type_id 		int;
+	s_class_id  	int;
+	current_cap 	int;
+begin 
+	
+	--get the flight plan id from the booking
+	select flight_schedule_id into fp_id
+		from flight_reservation fr 
+		inner join flight_schedule fp 
+			on (fr.flight_schedule_id = fp.id)
+		where fr.id = new.flight_reservation_id;
+	
+	--get the seat class id
+	select fr.class_id into s_class_id
+		from flight_reservation fr 
+		inner join seat_class sc
+			on (fr.class_id = sc.id)
+		where fr.id = new.flight_reservation_id;
+		
+	--get the class capacity
+	select ptsc.capacity into class_cap
+		from flight_schedule fp
+		inner join available_plane ap	
+			on (ap.id = fp.available_plane_id)
+		inner join plane p 
+			on (p.id = ap.plane_id)
+		inner join plane_type pt 
+			on (pt.id = p.plane_type_id)
+		inner join plane_type_seat_class ptsc 
+			on (pt.id = ptsc.plane_type_id)
+		where fp.id = fp_id and ptsc.seat_class_id = s_class_id;
+	
+	--get the current capacity on the plan for the class
+	select count(*) into current_cap
+		from flight_booking fb 
+		inner join flight_reservation fr 
+			on (fb.flight_reservation_id = fr.id) 
+		inner join flight_schedule fp 
+			on (fr.flight_schedule_id = fp.id)
+		where fp.id = fp_id and fr.class_id = s_class_id;
+	
+	if s_class_id < 3 then
+		return new;
+	else 
+		if current_cap < class_cap then
+			return new;
+		else
+			insert into payment (staff_id, flight_reservation_id, payment_date, amount)
+				values (new.staff_id, new.flight_reservation_id, new.book_date, -200);
+			return new;
+		end if;
+	end if;		
+end;
+$$;
+
+create trigger flight_booking_after_insert
+	after insert 
+	on flight_booking
+	for each row
+	execute function create_booking_refund_payment();
+			
 create or replace function check_plane_availability()
 	returns trigger
 	language plpgsql
@@ -671,7 +765,7 @@ begin
 	if maintenence is false then 		
 		for flight in flight_cursor loop 			
 			if new.departure_date between flight.departure_date and flight.arrival_date then 
-				raise exception 'Plane unavailable';
+				raise exception 'Plane unavailable' using errcode = 50001;
 			else 				
 				select fr.date_retired into route_retired
 					from flight_route fr 
@@ -679,12 +773,12 @@ begin
 				if route_retired is not null then
 					return new;
 				else
-					raise exception 'Flight route retired';
+					raise exception 'Flight route retired' using errcode = 50002;
 				end if;
 			end if;			
 		end loop;
 	else 
-		raise exception 'Plane unavailable';
+		raise exception 'Plane unavailable' using errcode = 50001;
 	end if;
 	return new;
 end;
@@ -728,7 +822,7 @@ begin
 	call pop_plane_type(3);
 	call pop_plane(5);
 	call pop_available_plane();
-	call pop_passenger(5);
+	call pop_passenger(100);
 	call pop_seat_class(3);
 	call pop_plane_type_seat_class(0);
 	call pop_flight_route(10);
@@ -743,6 +837,9 @@ end;
 $$;
 call pop_all();
 
-select * from flight_schedule 
+select * from flight_schedule;
+select * from flight_booking fb;
+select * from flight_reservation fr;
+select * from payment p;
 
 
