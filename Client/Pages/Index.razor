@@ -1,9 +1,109 @@
 ﻿@page "/"
+@using DirectFlights.Client.Services
+@using DirectFlights.Shared
+@using DirectFlights.Client.Models
+@inject FlightService service
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Direct Flights</PageTitle>
 
-<h1>Hello, world!</h1>
 
-Welcome to your new app.
+<div class="container px-5">
+	<h3>Search Flights</h3>
+	<EditForm Model=flightPlan OnValidSubmit=GetFlights>
+		<div class="row">
+			<div class="col pe-0">
+				<label class="me-2 my-auto">Leaving From:</label>
+				<div class="input-group">
+					<span class="input-group-text"><i class="oi oi-location"></i></span>
+					<InputSelect class="form-control" @bind-Value="flightPlan.DepartAirport" >
+						<option selected hidden>Depart Airport</option>
+						@foreach (var airport in airports)
+						{
+							<option value=@airport>@airport</option>
+						}
+					</InputSelect>
+				</div>
+			</div>
+			<div class="col-1 mt-4 pt-2 text-center px-0"><i class="oi oi-arrow-thick-right"></i></div>
+			<div class="col ps-0 ms-0">
+				<label class="me-2 my-auto">Going To:</label>
+				<div class="input-group">
+					<span class="input-group-text"><i class="oi oi-location"></i></span>
+					<InputSelect class="form-control" @bind-Value=flightPlan.ArriveAirport >
+						<option selected hidden>Arrive Airport</option>
+						@foreach (var airport in airports)
+						{
+							<option value=@airport>@airport</option>
+						}
+					</InputSelect>
+				</div>
+			</div>
+			<div class="col">
+				<div>Departing:</div>
+				<input class="date form-control" type="date" @bind="flightPlan.DepartDate" />
+			</div>
+		</div>
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<div class="row my-2">
+			<div class="col">
+				<button class="btn btn-primary" type="submit">Search</button>
+			</div>
+		</div>
+	</EditForm>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+	@if (flights != null)
+	{
+		@foreach (var flight in flights)
+		{
+			<div class="card my-1" @onclick="@(() => @showModal(flight))">
+				<div class="card-body">
+					<div class="row">
+						<div class="col">
+							<div class="fw-bold fs-5">@flight.DepartTime.ToShortTimeString() - @flight.ArriveTime.ToShortTimeString()</div>
+							<div>@flight.DepartAirport - @flight.ArriveAirport</div>
+							<div>@flight.Airline</div>
+						</div>
+						<div class="col text-center">
+							<div>@calculateDuration(flight.DepartTime, flight.ArriveTime)</div>
+						</div>
+						<div class="col text-end my-auto">
+							<div class="fw-bold fs-5">$@flight.Seats.ElementAt(2).Cost</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		}
+	}
+</div>
+
+
+@code {
+	[CascadingParameter] public IModalService Modal { get; set; }  = default!;
+	private ModalParameters parameters = new ModalParameters();
+
+	private FlightPlanModel flightPlan = new();
+	private IEnumerable<string> airports;
+	private IEnumerable<FlightDetail> flights;
+	protected override async Task OnInitializedAsync()
+	{
+		airports = await service.GetAirports();	
+	}
+
+	private async Task GetFlights()
+	{
+		flights = await service.GetFlights(flightPlan.DepartAirport, flightPlan.ArriveAirport, flightPlan.DepartDate);
+	}
+
+	private string calculateDuration(DateTime depart, DateTime arrive)
+	{
+		var duration = arrive - depart;
+		return duration.Hours + "h " + duration.Minutes + "m";
+	}
+
+	private void showModal(FlightDetail flight)
+	{
+		parameters.Add(nameof(flight), flight);
+		Modal.Show<Register>("Register Flight", parameters);
+	}
+}

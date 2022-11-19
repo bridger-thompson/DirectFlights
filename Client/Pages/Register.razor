@@ -1,0 +1,57 @@
+﻿@if (flight != null)
+{
+	<h3>Review Flight Details</h3>
+	<div class="fw-bold fs-5">@flight.DepartTime.ToShortTimeString() - @flight.ArriveTime.ToShortTimeString()</div>
+	<div>@flight.Airline</div>
+	<hr />
+	<EditForm Model=model>
+		<InputRadioGroup Name="Cost" @bind-Value=model.Cost>
+			@foreach (var seat in flight.Seats)
+			{
+				<div class="row border-bottom fs-5">
+					<div class="col-1">
+						<InputRadio Name="Cost" Value="@seat.Cost" style="border:none;"/>
+					</div>
+					<div class="col px-0">
+						@seat.Name
+					</div>
+					<div class="col text-end fw-bold">
+						$@seat.Cost
+					</div>
+				</div>
+			}
+		</InputRadioGroup>
+	</EditForm>
+	<div class="mt-4 text-secondary">Tax: @((Convert.ToDouble(model.Cost) * taxRate).ToString("C2"))</div>
+	<div class="row ">
+		<div class="col">
+			<h3 class="my-auto">Total: @((Convert.ToDouble(model.Cost) * (taxRate + 1)).ToString("C2"))</h3>
+		</div>
+		<div class="col text-end">
+			<button class="btn btn-success">Purchase</button>
+		</div>
+	</div>
+}
+else
+{
+	<h1>Error loading flight details. Please try again later.</h1>
+}
+
+@code {
+	[Parameter] 
+	public FlightDetail flight { get; set; }
+
+	private SeatModel model { get; set; } = new();
+	private double taxRate = 0.06;
+
+	protected override Task OnInitializedAsync()
+	{
+		model.Cost = flight.Seats.ElementAt(2).Cost;
+		return base.OnInitializedAsync();
+	}
+
+	private class SeatModel
+	{
+		public double Cost { get; set; }
+	}
+}
