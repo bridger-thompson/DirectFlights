@@ -8,6 +8,7 @@ namespace DirectFlights.Shared
 {
     public class FlightDetail
     {
+        public int Id { get; set; }
         public DateTime DepartTime { get; set; }
         public DateTime ArriveTime { get; set; }
         public string DepartAirport { get; set; }

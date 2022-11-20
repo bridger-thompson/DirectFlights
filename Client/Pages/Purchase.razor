@@ -1,0 +1,16 @@
+﻿@page "/purchase/{id:int}/seat/{seatClassId:int}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using DirectFlights.Shared
+@attribute [Authorize]
+
+
+<PageTitle>Purchase Ticket</PageTitle>
+
+<h3>Purchase Ticket</h3>
+@code {
+	[Parameter]
+	public int Id { get; set; }
+	[Parameter]
+	public int SeatClassId { get; set; }
+}

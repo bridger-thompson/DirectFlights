@@ -28,7 +28,7 @@
 			<h3 class="my-auto">Total: @((Convert.ToDouble(model.Cost) * (taxRate + 1)).ToString("C2"))</h3>
 		</div>
 		<div class="col text-end">
-			<button class="btn btn-success">Purchase</button>
+			<button class="btn btn-success"><NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost))>Purchase</NavLink></button>
 		</div>
 	</div>
 }
@@ -53,5 +53,17 @@ else
 	private class SeatModel
 	{
 		public double Cost { get; set; }
+	}
+
+	private int GetSeatId(double cost)
+	{
+		foreach (var seat in flight.Seats)
+		{
+			if (seat.Cost == cost)
+			{
+				return seat.Id;
+			}
+		}
+		return 0;
 	}
 }
