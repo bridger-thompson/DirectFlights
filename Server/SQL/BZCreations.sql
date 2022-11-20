@@ -194,7 +194,7 @@ begin
 end;
 $$;
 
-create or replace procedure pop_plane_type_seat_class(amount integer)
+create or replace procedure pop_plane_type_seat_class()
 	language plpgsql
 	as 
 $$
@@ -205,7 +205,7 @@ begin
 	for plane_type_id in select id from plane_type loop
 		for seat_class_id in select id from seat_class loop
 			insert into plane_type_seat_class (plane_type_id, seat_class_id, capacity)
-				values (plane_type_id, seat_class_id, 40);
+				values (plane_type_id, seat_class_id, get_random_number(40,100));
 		end loop;
 	end loop;
 	commit;
@@ -310,7 +310,7 @@ begin
 end;
 $$;
 
-create or replace procedure pop_flight_reservation(amount integer)
+create or replace procedure pop_flight_reservation()
 	language plpgsql
 	as 
 $$
@@ -349,7 +349,7 @@ begin
 end;
 $$;
 
-create or replace procedure pop_flight_booking(amount integer)
+create or replace procedure pop_flight_booking()
 	language plpgsql
 	as 
 $$
@@ -402,7 +402,7 @@ begin
 end;
 $$;
 
-create or replace procedure pop_passenger_manifest(amount integer)
+create or replace procedure pop_passenger_manifest()
 	language plpgsql
 	as 
 $$
@@ -888,35 +888,55 @@ create trigger flight_schedule_insert
 
 /* Populate all data */
 
-create or replace procedure pop_all()
+create or replace procedure pop_first_chain()
 	language plpgsql
 	as 
 $$
 begin 
 	call pop_airline(3);
-	call pop_staff(5);
 	call pop_airport(10);
 	call pop_plane_type(3);
 	call pop_plane(10);
 	call pop_available_plane();
-	call pop_passenger(1000);
 	call pop_seat_class(3);
-	call pop_plane_type_seat_class(0);
+	call pop_plane_type_seat_class();
 	call pop_flight_schedule_template(10);
 	call pop_flight_schedule(20, '-180 days');
 	call pop_flight_schedule(10, '30 days');
-	call pop_flight_seat_class(); 
-	call pop_flight_reservation(0);
-	call pop_flight_booking(0);
-	call pop_passenger_manifest(0);
+	call pop_flight_seat_class();
 	call pop_flight_log();
+end;
+$$;
+
+create or replace procedure pop_second_chain()
+	language plpgsql
+	as 
+$$
+begin 
+	call pop_staff(5);
+	call pop_passenger(1000);
+	call pop_flight_reservation();
+	call pop_flight_booking();
+	call pop_passenger_manifest();
+end;
+$$;
+
+create or replace procedure pop_all()
+	language plpgsql
+	as 
+$$
+begin 
+	call pop_first_chain();
+	call pop_second_chain();
 end;
 $$;
 call pop_all();
 
-select * from flight_schedule fs2;
-select count(*) from flight_schedule fs3; 
-select * from flight_log fl;
-select * from flight_reservation fr; 
-select * from flight_seat_class fsc; 
+insert into flight_schedule (flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
+values (111, 1, 1, 1, 1, '11/20/2022 1:00', '11/20/2022 2:00' , 'A1', 'A1', false);
 
+insert into flight_schedule (flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
+values (111, 1, 1, 1, 2, '11/20/2022 1:00', '11/20/2022 1:00', 'A1', 'A1', false);
+
+insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
+values (1, 1, 1, now(), 60);
