@@ -354,17 +354,17 @@ create or replace procedure pop_flight_booking()
 	as 
 $$
 declare 
-	flight_res_id 	int;
-	staff_id		int;
-	start_date 		timestamp;
+	flight_res_id 		int;
+	staff_id			int;
+	start_date 			timestamp;
+	flight_res_cursor	cursor for select fr.id from flight_reservation fr
+							inner join flight_schedule fs2
+								on (fr.flight_schedule_id = fs2.id)
+							where fs2.cancelled is not true;
 begin 
-	for flight_res_id in 
-		select fr.id from flight_reservation fr
-			inner join flight_schedule fs2
-				on (fr.flight_schedule_id = fs2.id)
-			where fs2.cancelled is not true
-	loop
+	for flight_res in flight_res_cursor loop
 		begin
+			flight_res_id := flight_res.id;
 			select id into staff_id 
 				from staff
 				where id != 1
@@ -667,8 +667,10 @@ begin
 	--Get the current capacity of the flight reservation
 	select count(*) into current_capacity
 		from flight_reservation fr
+		inner join flight_seat_class fsc 
+			on (fr.class_id = fsc.id)
 		inner join seat_class sc 
-			on (fr.class_id = sc.id)
+			on (fsc.seat_id = sc.id)
 		inner join plane_type_seat_class ptsc 
 			on (sc.id = ptsc.seat_class_id)
 		where fr.flight_schedule_id = new.flight_schedule_id 
@@ -720,20 +722,22 @@ declare
 begin 
 	
 	--get the flight plan id from the booking
-	select flight_schedule_id into fp_id
+	select fr.flight_schedule_id into fp_id
 		from flight_reservation fr 
 		inner join flight_schedule fp 
 			on (fr.flight_schedule_id = fp.id)
 		where fr.id = new.flight_reservation_id;
 	
 	--get the seat class id
-	select fr.class_id into s_class_id
+	select sc.id into s_class_id
 		from flight_reservation fr 
+		inner join flight_seat_class fsc
+			on (fr.class_id = fsc.id)
 		inner join seat_class sc
-			on (fr.class_id = sc.id)
+			on (fsc.seat_id = sc.id)
 		where fr.id = new.flight_reservation_id;
 		
-	--get the class capacity
+	--get the class capacity	
 	select ptsc.capacity into class_cap
 		from flight_schedule fp
 		inner join available_plane ap	
@@ -940,3 +944,8 @@ values (111, 1, 1, 1, 2, '11/20/2022 1:00', '11/20/2022 1:00', 'A1', 'A1', false
 
 insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
 values (1, 1, 1, now(), 60);
+
+
+select * from flight_booking fb;
+select * from passenger_manifest pm; 
+select * from payment p where amount = -200;
