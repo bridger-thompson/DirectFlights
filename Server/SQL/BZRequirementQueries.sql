@@ -16,7 +16,7 @@ begin
 end;
 $$;
 
-select check_current_flight_status(52);
+select check_current_flight_status(33);
 
 create or replace function check_scheduled_flight_status(flight_schedule_id integer)
 	returns text 
@@ -39,7 +39,6 @@ begin
 	return 'On time';
 end;
 $$;
-
 
 create or replace function check_flight_delayed(flight_sched_id integer)
 	returns boolean
@@ -66,15 +65,20 @@ begin
 			raise notice 'Flight has not departed at its scheduled time.';
 			return true;
 		end if;
+	elsif land_time is null and (sched_arr_time + grace_period) < now() then 
+		raise notice 'Flight is going to land late';
+		return true;
 	elsif take_off_time > (sched_depart_time + grace_period) then 
 		raise notice 'Flight took off late';
 		return true;
 	elsif land_time is not null and land_time > (sched_arr_time + grace_period) then 
 		raise notice 'Flight landed late';
-		return true;
+		return true;	
 	end if;
 	return false;
 end;
 $$;
 
-select check_scheduled_flight_status(8);
+select check_scheduled_flight_status(67);
+select check_scheduled_flight_status(1);
+select check_scheduled_flight_status(64);

@@ -8,7 +8,7 @@ set search_path to zack_bridger;
 --drop table if exists flight_booking;
 --drop table if exists flight_reservation;
 --drop table if exists available_plane;
---drop table if exists flight_route;
+--drop table if exists flight_schedule_template;
 --drop table if exists passenger;
 --drop table if exists plane_type_seat_class;
 --drop table if exists seat_class;
@@ -71,43 +71,51 @@ create table plane_type_seat_class (
 	capacity		int not null
 );
 
-create table flight_route (
+create table flight_schedule_template (
 	id 						serial primary key,	
+	flight_number			int not null,
+	segment_number			int not null,
 	airline_id				int references airline(id) not null,
-	depart_airport_id		int references airport(id) not null,
+	departure_airport_id	int references airport(id) not null,
 	arrival_airport_id		int references airport(id) not null,
+	take_off_time			time not null,
+	landing_time			time not null,
+	plane_type_id			int references plane_type(id) not null,
 	date_created			timestamp not null,
-	date_retired			timestamp
+	date_retired			timestamp,
+	check (landing_time > take_off_time),
+	check (departure_airport_id <> arrival_airport_id),
+	unique (flight_number, segment_number)
 );
 
 create table flight_schedule (
 	id 						serial primary key,
-	flight_route_id			int references flight_route(id) not null,
-	available_plane_id		int references available_plane(id) not null,
+	flight_number			int not null,
+	segment_number			int not null,
+	assigned_plane			int references available_plane(id) not null,
+	departure_airport_id	int references airport(id) not null,
+	arrival_airport_id		int references airport(id) not null,
 	departure_date			timestamp not null,
 	arrival_date			timestamp not null,
 	departure_gate			varchar(5) not null,
 	arrival_gate			varchar(5) not null,
 	cancelled				bool not null,
-	check (arrival_date > departure_date)
+	check (arrival_date > departure_date),
+	check (departure_airport_id <> arrival_airport_id)
 );
 
-create table flight_schedule_log (
-	id 					serial primary key,
-	available_plane_id	int references available_plane(id) not null,
-	departure_date		timestamp not null,
-	arrival_date		timestamp not null,
-	departure_gate		varchar(5) not null,
-	arrival_gate		varchar(5) not null,
-	flight_schedule_id	int references flight_schedule(id) not null,
-	check (arrival_date > departure_date)
+create table flight_seat_class (
+	id					serial primary key,
+	seat_id				int references seat_class(id) not null,
+	flight_id			int references flight_schedule(id) not null,
+	suggested_cost		numeric not null
 );
 
 create table flight_reservation (
 	id 					serial primary key,
 	passenger_id 		int references passenger(id) not null,
 	flight_schedule_id 	int references flight_schedule(id) not null,
-	class_id 			int references seat_class(id) not null,
+	class_id 			int references flight_seat_class(id) not null,
 	reservation_date	date not null,
 	seat_cost			numeric not null
 );
@@ -268,54 +276,36 @@ create or replace procedure pop_flight_schedule(amount integer, date_range inter
 	as 
 $$
 declare 
-	route_id	int;
-	plane_id	int;
-	air_id 	int;
-	start_date 	timestamp;
+	air_id 			int;
+	start_date 		date;
+	flight_id		int;
+	is_cancelled	bool;
 begin 
 	for i in 1..amount loop
 		for air_id in select id from airline loop
-			begin
-				select ap.id into plane_id
-					from available_plane ap
-					inner join plane p 
-						on (ap.plane_id = p.id)
-					where in_maintenence = false
-					order by random() limit 1;
-				
-				select fr.id into route_id
-					from flight_route fr
-					where fr.airline_id = air_id
-					order by random() limit 1;
-				
-				start_date := get_random_date(now()::timestamp, date_range);
-				
-				insert into flight_schedule (flight_route_id, available_plane_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
-					values (route_id, plane_id, 
-							start_date, get_random_date(start_date, '10 hours'),
-							get_random_gate(), get_random_gate(), get_random_bool());	
+			begin				
+				start_date := get_random_date(now()::date, date_range);
+			
+				call create_flight_schedule(start_date, air_id);
+			
+				select get_random_bool() into is_cancelled;
+				if is_cancelled then
+					select f.id into flight_id
+						from flight_schedule f
+						order by random() limit 1;
+					update flight_schedule 
+						set cancelled = is_cancelled 
+						where id=flight_id;
+				end if;
 			exception when 
 				sqlstate '50001' then
 					null;
 			 	when
 				sqlstate '50002' then
 					null;
-					
 			end;
 		end loop;		
 	end loop;
-	commit;
-end;
-$$;
-
-create or replace procedure pop_flight_schedule_log(amount integer)
-	language plpgsql
-	as 
-$$
-begin 
-	insert into flight_schedule_log
-		values (1, 3, '11/10/2022 8:30', '11/10/2022 11:30', 'A1', 'B2', 1),
-		(2, 2, '11/10/2022 18:30', '11/11/2022 6:30', 'B6', 'A2', 2);
 	commit;
 end;
 $$;
@@ -329,20 +319,27 @@ declare
 	flight_schedule_id		int;
 	class_id				int;
 	start_date 				timestamp;
+	price					numeric;
 begin 
 	for passenger_id in select id from passenger loop
 		begin
-			select id into flight_schedule_id 
-				from flight_schedule
+			select fs1.id into flight_schedule_id 
+				from flight_schedule fs1
 				order by random() limit 1;
 				
-			select get_random_number(3) into class_id;	
+			select fc.id, fc.suggested_cost into class_id, price
+				from flight_seat_class fc
+				inner join flight_schedule fs3
+					on (fs3.id = fc.flight_id)
+				where fc.flight_id = flight_schedule_id
+				order by random() limit 1;
+			
 			select fs2.departure_date into start_date
 				from flight_schedule fs2
 				where fs2.id = flight_schedule_id;
 				
 			insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
-				values (passenger_id, flight_schedule_id, class_id, get_random_date(start_date, '-30 days'), 60);
+				values (passenger_id, flight_schedule_id, class_id, get_random_datetime(start_date, '-30 days'), price);
 			exception 
 				when sqlstate '50003' then
 					null;
@@ -380,7 +377,7 @@ begin
 				where fr.id = flight_res_id;
 			
 			insert into flight_booking (flight_reservation_id, book_date, staff_id)
-				values (flight_res_id, get_random_date(start_date,'-2 hour'), staff_id);
+				values (flight_res_id, get_random_datetime(start_date,'-2 hour'), staff_id);
 			exception when
 				sqlstate '50004' then
 					null;
@@ -430,8 +427,8 @@ create or replace procedure pop_flight_log()
     as
 $$
 declare
-	flight_past_cursor cursor for select * from flight_schedule f inner join flight_route fr on (f.flight_route_id=fr.id) where f.arrival_date <= now() and not f.cancelled;
-	flight_future_cursor cursor for select * from flight_schedule f inner join flight_route fr on (f.flight_route_id=fr.id) where f.arrival_date > now() and not f.cancelled;
+	flight_past_cursor cursor for select * from flight_schedule f where f.arrival_date <= now() and not f.cancelled;
+	flight_future_cursor cursor for select * from flight_schedule f where f.arrival_date > now() and not f.cancelled;
 	is_delayed	bool;
 begin
     for flight in flight_past_cursor loop
@@ -439,12 +436,12 @@ begin
 	    is_delayed := get_random_bool();	    
 	   	if is_delayed then 	   		
         	insert into flight_log (flight_schedule_id, depart_date, arrival_date, depart_airport_id, arrival_airport_id)
-        		values (flight.id, get_random_date(flight.departure_date, '10 hours'), get_random_date(flight.arrival_date, '10 hours'), 
-       				flight.depart_airport_id, flight.arrival_airport_id);
+        		values (flight.id, get_random_datetime(flight.departure_date, '2 hours'), get_random_datetime(flight.arrival_date, '2 hours'), 
+       				flight.departure_airport_id, flight.arrival_airport_id);
        	else
        		insert into flight_log (flight_schedule_id, depart_date, arrival_date, depart_airport_id, arrival_airport_id)
         		values (flight.id, flight.departure_date, flight.arrival_date, 
-       				flight.depart_airport_id, flight.arrival_airport_id);
+       				flight.departure_airport_id, flight.arrival_airport_id);
        	end if;
    	end loop;
    	commit;
@@ -452,58 +449,152 @@ begin
 	   	is_delayed := get_random_bool();
 	   	if is_delayed then	   	
         	insert into flight_log (flight_schedule_id, depart_date, arrival_date, depart_airport_id, arrival_airport_id)
-        		values (flight.id, get_random_date(flight.departure_date, '10 hours'), null, flight.depart_airport_id, null);
+        		values (flight.id, get_random_datetime(flight.departure_date, '10 hours'), null, flight.departure_airport_id, null);
        	else
        		insert into flight_log (flight_schedule_id, depart_date, arrival_date, depart_airport_id, arrival_airport_id)
-        		values (flight.id,flight.departure_date, null, flight.depart_airport_id, null);
+        		values (flight.id,flight.departure_date, null, flight.departure_airport_id, null);
        	end if;
     end loop;
    	commit;
 end;    
 $$;
 
-create or replace procedure pop_flight_route(amount integer)
+create or replace procedure pop_flight_schedule_template(amount integer)
 	language plpgsql
 	as 
 $$
 declare 
-	max_airports		int;
-	start_date			timestamp;
-	airline_id			int;	
-	depart_airport_id 	int;
-	arrival_airport_id	int;
+	start_date				timestamp;
+	airline_id				int;	
+	departure_airport_id 	int;
+	arrival_airport_id		int;
+	flight_num				int;
+	segment_num				int;
+	start_time				int;
+	end_time				int;
+	plane_type_id			int;
 begin
-	select count(*) into max_airports from airport;
-	for i in 1..amount loop
-		for airline_id in select id from airline loop
-			for depart_airport_id in select id from airport loop
-				for arrival_airport_id in select id from airport loop					
-					start_date := get_random_date(now()::timestamp, '365 days');
-					if depart_airport_id <> arrival_airport_id then
-						insert into flight_route (depart_airport_id, arrival_airport_id, date_created, date_retired, airline_id)
-							values (depart_airport_id, arrival_airport_id, start_date, null, airline_id);		
-					end if;					
-				end loop;				
-			end loop;			
-		end loop;	
+	for airline_id in select id from airline loop
+		for i in 1..amount loop
+			begin
+				start_date := get_random_datetime(now()::timestamp, '365 days');
+		
+				select get_random_number(1,3) into segment_num;
+				select get_random_number(1,999) into flight_num;
+				
+				select id into arrival_airport_id
+					from airport 
+					order by random() limit 1;
+				
+				select get_random_number(0,3) into end_time;
+						
+				for s in 1..segment_num loop
+					start_time := end_time;
+					select get_random_number(start_time+1,start_time+3) into end_time;
+					
+						
+					departure_airport_id := arrival_airport_id;
+					select id into arrival_airport_id
+						from airport 
+						where id <> departure_airport_id
+						order by random() limit 1;
+							
+					select p.id into plane_type_id
+						from plane_type p
+						order by random() limit 1;
+							
+					insert into flight_schedule_template (flight_number, segment_number, airline_id, departure_airport_id, arrival_airport_id, take_off_time, landing_time, plane_type_id, date_created, date_retired)
+						values (flight_num, s, airline_id, departure_airport_id, arrival_airport_id, (start_time || ':00')::time, (end_time || ':00')::time, plane_type_id, start_date, null);
+				end loop;
+				exception when others then null;
+			end;			
+		end loop;							
 	end loop;
 	commit;
 end;
 $$;
 
+create or replace procedure pop_flight_seat_class()
+	language plpgsql
+	as 
+$$
+declare
+	flight 	int;
+	seat	int;
+begin
+	for flight in select id from flight_schedule loop		
+		for seat in select id from seat_class loop			
+			insert into flight_seat_class (seat_id, flight_id, suggested_cost)
+				values (seat, flight, get_random_number(100,300));			
+		end loop;	
+	end loop;	
+end;
+$$;
+
+create or replace procedure create_flight_schedule(departure_date date, air_id integer)
+	language plpgsql
+	as 
+$$
+declare 
+	plane_id					int;
+	schedule_template_cursor	cursor for select * from flight_schedule_template fst where fst.airline_id = air_id;
+	depart_datetime				timestamp;
+	arrival_datetime			timestamp;
+begin
+	
+	for schedule_template in schedule_template_cursor loop
+		
+		depart_datetime := departure_date + schedule_template.take_off_time;
+		arrival_datetime := departure_date + schedule_template.landing_time;
+	
+		select ap.id into plane_id
+			from plane_type pt
+			inner join plane p 
+				on (pt.id = p.plane_type_id)
+			inner join available_plane ap 
+				on (ap.plane_id = p.id)
+			left join flight_schedule fs2 
+				on (ap.id = fs2.assigned_plane)
+			where pt.id = schedule_template.plane_type_id and 
+				ap.in_maintenence = false and 
+				p.airline_id = air_id and 
+				((fs2.departure_date < depart_datetime and fs2.arrival_date < arrival_datetime) or
+				(fs2.departure_date is null and fs2.arrival_date is null))			
+			order by random() limit 1;
+		
+		if plane_id is not null then		
+			insert into flight_schedule(flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
+				values(schedule_template.flight_number, schedule_template.segment_number, 
+					plane_id, schedule_template.departure_airport_id, schedule_template.arrival_airport_id, 
+					depart_datetime, arrival_datetime, get_random_gate(), get_random_gate(), false);
+		end if;
+	end loop;
+end;
+$$;	
+
 /* Functions */
 
-create or replace function get_random_number(max_value integer)
+create or replace function get_random_number(start_value integer, max_value integer)
 	returns integer
 	language plpgsql
 	as
 $$
 begin
-	return floor(random() * (max_value) + 1)::int;
+	return floor(random() * (max_value) + start_value)::int;
 end;
 $$;
 
-create or replace function get_random_date(start_date timestamp, time_frame interval) 
+create or replace function get_random_date(start_date date, time_frame interval) 
+	returns date 
+	language plpgsql 
+	as
+$$
+begin 
+	return start_date + (random() * (start_date+time_frame - start_date));
+end;
+$$;
+
+create or replace function get_random_datetime(start_date timestamp, time_frame interval) 
 	returns timestamp 
 	language plpgsql 
 	as
@@ -554,7 +645,7 @@ begin
 	select (ptsc.capacity * 1.1) into overbook_capacity
 		from flight_schedule fp
 		inner join available_plane ap	
-			on (ap.id = fp.available_plane_id)
+			on (ap.id = fp.assigned_plane)
 		inner join plane p 
 			on (p.id = ap.plane_id)
 		inner join plane_type pt 
@@ -569,7 +660,7 @@ begin
 		inner join flight_schedule fp
 			on (fr.flight_schedule_id = fp.id)
 		inner join available_plane ap	
-			on (ap.id = fp.available_plane_id)
+			on (ap.id = fp.assigned_plane)
 		inner join plane p 
 			on (p.id = ap.plane_id);
 		
@@ -646,7 +737,7 @@ begin
 	select ptsc.capacity into class_cap
 		from flight_schedule fp
 		inner join available_plane ap	
-			on (ap.id = fp.available_plane_id)
+			on (ap.id = fp.assigned_plane)
 		inner join plane p 
 			on (p.id = ap.plane_id)
 		inner join plane_type pt 
@@ -713,7 +804,7 @@ begin
 	select ptsc.capacity into class_cap
 		from flight_schedule fp
 		inner join available_plane ap	
-			on (ap.id = fp.available_plane_id)
+			on (ap.id = fp.assigned_plane)
 		inner join plane p 
 			on (p.id = ap.plane_id)
 		inner join plane_type pt 
@@ -761,23 +852,21 @@ declare
 	flight_cursor 	cursor for
 					select * 
 						from flight_schedule f 
-						inner join flight_route fr 
-							on (f.flight_route_id=fr.id)
-						where f.available_plane_id = new.available_plane_id;
+						where f.assigned_plane = new.assigned_plane;
 	route_retired 	timestamp;
 begin
 	select ap.in_maintenence into maintenence
 		from available_plane ap
-		where plane_id = new.available_plane_id;
+		where plane_id = new.assigned_plane;
 	if maintenence is false then 		
 		for flight in flight_cursor loop 			
 			if new.departure_date between flight.departure_date and flight.arrival_date then 
-				raise exception 'Plane unavailable' using errcode = 50001;
+				raise exception 'Plane % already scheduled', new.assigned_plane using errcode = 50001;
 			else 				
 				select fr.date_retired into route_retired
-					from flight_route fr 
-					where fr.id = new.flight_route_id;
-				if route_retired is not null then
+					from flight_schedule_template fr 
+					where fr.flight_number = new.flight_number and fr.segment_number = new.segment_number;
+				if route_retired is null then
 					return new;
 				else
 					raise exception 'Flight route retired' using errcode = 50002;
@@ -785,7 +874,7 @@ begin
 			end if;			
 		end loop;
 	else 
-		raise exception 'Plane unavailable' using errcode = 50001;
+		raise exception 'Plane % in maintenence', new.assigned_plane using errcode = 50001;
 	end if;
 	return new;
 end;
@@ -797,25 +886,6 @@ create trigger flight_schedule_insert
 	for each row 
 	execute function check_plane_availability();
 
-create or replace function log_flight_changes()
-	returns trigger
-	language plpgsql
-	as 
-$$
-begin 
-	insert into flight_schedule_log (available_plane_id, departure_date, arrival_date, departure_gate, arrival_gate, flight_schedule_id)
-		values(old.available_plane_id, old.departure_date, old.arrival_date, old.departure_gate, old.arrival_gate, new.id);
-	return new;
-end;
-$$;
-
-create trigger flight_schedule_update
-	before update
-	on flight_schedule
-	for each row 
-	execute function log_flight_changes();
-
-
 /* Populate all data */
 
 create or replace procedure pop_all()
@@ -825,17 +895,17 @@ $$
 begin 
 	call pop_airline(3);
 	call pop_staff(5);
-	call pop_airport(3);
+	call pop_airport(10);
 	call pop_plane_type(3);
-	call pop_plane(5);
+	call pop_plane(10);
 	call pop_available_plane();
 	call pop_passenger(1000);
 	call pop_seat_class(3);
 	call pop_plane_type_seat_class(0);
-	call pop_flight_route(10);
+	call pop_flight_schedule_template(10);
 	call pop_flight_schedule(20, '-180 days');
 	call pop_flight_schedule(10, '30 days');
-	--call pop_flight_schedule_log(0);
+	call pop_flight_seat_class(); 
 	call pop_flight_reservation(0);
 	call pop_flight_booking(0);
 	call pop_passenger_manifest(0);
@@ -844,9 +914,9 @@ end;
 $$;
 call pop_all();
 
-select * from flight_schedule;
-select * from flight_booking fb;
-select * from flight_reservation fr;
-select * from payment p;
-
+select * from flight_schedule fs2;
+select count(*) from flight_schedule fs3; 
+select * from flight_log fl;
+select * from flight_reservation fr; 
+select * from flight_seat_class fsc; 
 
