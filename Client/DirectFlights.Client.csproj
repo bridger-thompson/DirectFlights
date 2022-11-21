@@ -18,4 +18,8 @@
     <ProjectReference Include="..\Shared\DirectFlights.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Microsoft.Authentication.WebAssembly.Msal" />
+  </ItemGroup>
+
 </Project>
