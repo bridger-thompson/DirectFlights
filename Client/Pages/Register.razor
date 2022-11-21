@@ -1,8 +1,20 @@
-﻿@if (flight != null)
+﻿@using DirectFlights.Client.Services
+@inject FlightService service
+
+@if (flight != null)
 {
-	<h3>Review Flight Details</h3>
-	<div class="fw-bold fs-5">@flight.DepartTime.ToShortTimeString() - @flight.ArriveTime.ToShortTimeString()</div>
-	<div>@flight.Airline</div>
+	<div class="fw-bold fs-5 ">@flight.DepartTime.ToShortTimeString() - @flight.ArriveTime.ToShortTimeString()</div>
+	<div class="row">
+		<div class="col my-auto">
+			<div>@flight.Airline</div>
+		</div>
+		<div class="col-8 text-end my-auto">
+			<label class="form-label">Tickets:</label>
+		</div>
+		<div class="col">
+			<input type="number" class="form-control" @bind="numTickets" />
+		</div>
+	</div>
 	<hr />
 	<EditForm Model=model>
 		<InputRadioGroup Name="Cost" @bind-Value=model.Cost>
@@ -22,13 +34,13 @@
 			}
 		</InputRadioGroup>
 	</EditForm>
-	<div class="mt-4 text-secondary">Tax: @((Convert.ToDouble(model.Cost) * taxRate).ToString("C2"))</div>
+	<div class="mt-4 text-secondary">Tax: @GetTotal(taxRate).Result</div>
 	<div class="row ">
 		<div class="col">
-			<h3 class="my-auto">Total: @((Convert.ToDouble(model.Cost) * (taxRate + 1)).ToString("C2"))</h3>
+			<h3 class="my-auto">Total: @GetTotal(taxRate+1).Result</h3>
 		</div>
 		<div class="col text-end">
-			<button class="btn btn-success"><NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost))>Purchase</NavLink></button>
+			<button class="btn btn-success"><NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost) + "/count/" + numTickets)>Select and Review</NavLink></button>
 		</div>
 	</div>
 }
@@ -43,6 +55,7 @@ else
 
 	private SeatModel model { get; set; } = new();
 	private double taxRate = 0.06;
+	private int numTickets {get; set; } = 1;
 
 	protected override Task OnInitializedAsync()
 	{
@@ -65,5 +78,10 @@ else
 			}
 		}
 		return 0;
+	}
+
+	private async Task<string> GetTotal(double rate)
+	{
+		return await service.GetTotal(flight.Id, GetSeatId(model.Cost), numTickets, rate);
 	}
 }

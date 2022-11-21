@@ -1,0 +1,72 @@
+﻿@page "/purchase/{id:int}/seat/{seatClassId:int}/count/{num:int}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using DirectFlights.Shared
+@using DirectFlights.Client.Services
+@attribute [Authorize]
+@inject FlightService service
+
+
+<PageTitle>Purchase Ticket</PageTitle>
+
+<div class="container">
+	<h3>Review Ticket Purchase</h3>
+	<h5>Credit Card Information</h5>
+	<div class="row">
+		<div class="col-lg-2 col-4 mt-2 text-end">
+			<label class="form-label">Credit Card Number:</label>
+		</div>
+		<div class="col-lg-5 col">
+			<input type="text" class="form-control" />
+			<span class="text-secondary" style="font-size: 12px">Example: 1111-1111-1111-1111</span>
+		</div>
+	</div>
+	<div class="row my-2">
+		<div class="col-lg-2 col-3 text-end mt-2">
+			<label class="form-label">Exp. Date:</label>
+		</div> 
+		<div class="col-lg-2 col-4">
+			<input type="text" class="form-control" />
+			<span class="text-secondary" style="font-size: 12px">Ex: 01/00</span>
+		</div>
+		<div class="col-lg-1 col-2 text-end mt-2">
+			<label class="form-label">CVV:</label>
+		</div> 
+		<div class="col-lg-1 col-3">
+			<input type="text" class="form-control" />
+			<span class="text-secondary" style="font-size: 12px">Ex: 123</span>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-3 col my-auto">
+			<div class="fw-bold fs-5">
+				Total: @GetTotal().Result
+			</div>
+		</div>
+		<div class="col-lg-4 col text-end">
+			<button class="btn btn-success" @onclick=PurchaseTicket><NavLink href="/confirm" class="text-decoration-none text-reset">Purchase Ticket</NavLink></button>
+		</div>
+	</div>
+	<div class="row">
+		<div style="font-size: 8px" class="text-secondary">*Note: None of this is real. You will not be charged.</div>
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public int Id { get; set; }
+	[Parameter]
+	public int SeatClassId { get; set; }
+	[Parameter]
+	public int num { get; set; }
+
+	private async Task<string> GetTotal()
+	{
+		return await service.GetTotal(Id, SeatClassId, num, 1.06);
+	}
+
+	private async void PurchaseTicket()
+	{
+		await service.AddTicketToDB(Id, SeatClassId);
+	}
+}

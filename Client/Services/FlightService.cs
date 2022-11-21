@@ -6,16 +6,7 @@ namespace DirectFlights.Client.Services
     {
         private readonly HttpClient client;
         private readonly ILogger<FlightService> logger;
-
-        public FlightService(HttpClient client, ILogger<FlightService> logger)
-        {
-            this.client = client;
-            this.logger = logger;
-        }
-
-        public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, DateTime departDate)
-        {
-            var flights = new List<FlightDetail>()
+        private List<FlightDetail> flights = new List<FlightDetail>()
             {
                 new FlightDetail(){
                     Id = 1,
@@ -57,10 +48,19 @@ namespace DirectFlights.Client.Services
                     }
                 }
             };
+
+        public FlightService(HttpClient client, ILogger<FlightService> logger)
+        {
+            this.client = client;
+            this.logger = logger;
+        }
+
+        public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, DateTime departDate)
+        {
             var ourFlights = new List<FlightDetail>();
             foreach (var flight in flights)
             {
-                if (flight.DepartAirport == departAirport && flight.ArriveAirport == arriveAirport && flight.DepartTime.DayOfYear == departDate.DayOfYear)
+                if (flight.DepartAirport == departAirport && flight.ArriveAirport == arriveAirport /*&& flight.DepartTime.DayOfYear == departDate.DayOfYear*/)
                 {
                     ourFlights.Add(flight);
                 }
@@ -82,6 +82,30 @@ namespace DirectFlights.Client.Services
         {
             logger.LogInformation("Registers Passenger on flight");
             return null; 
+        }
+
+        public async Task<string> GetTotal(int flightDetailId, int seatId, int numTickets, double rate)
+        {
+            foreach (var flight in flights)
+            {
+                if (flight.Id == flightDetailId)
+                {
+                    foreach (var seat in flight.Seats)
+                    {
+                        if (seat.Id == seatId)
+                        {
+                            return (seat.Cost * rate * numTickets).ToString("C2");
+                        }
+                    }
+                }
+            }
+            throw new Exception("Ticket Cost not found");
+        }
+
+        public async Task AddTicketToDB(int flightDetailId, int seatId)
+        {
+            logger.LogInformation("Registered Ticket");
+            logger.LogInformation("Email (not) sent");
         }
     }
 }
