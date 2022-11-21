@@ -897,16 +897,16 @@ create or replace procedure pop_first_chain()
 	as 
 $$
 begin 
-	call pop_airline(3);
+	call pop_airline(10);
 	call pop_airport(10);
-	call pop_plane_type(3);
-	call pop_plane(10);
+	call pop_plane_type(60);
+	call pop_plane(100);
 	call pop_available_plane();
 	call pop_seat_class(3);
 	call pop_plane_type_seat_class();
-	call pop_flight_schedule_template(10);
-	call pop_flight_schedule(20, '-180 days');
-	call pop_flight_schedule(10, '30 days');
+	call pop_flight_schedule_template(100);
+	call pop_flight_schedule(5, '-180 days');
+	call pop_flight_schedule(5, '30 days');
 	call pop_flight_seat_class();
 	call pop_flight_log();
 end;
@@ -936,16 +936,9 @@ end;
 $$;
 call pop_all();
 
-insert into flight_schedule (flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
-values (111, 1, 1, 1, 1, '11/20/2022 1:00', '11/20/2022 2:00' , 'A1', 'A1', false);
-
-insert into flight_schedule (flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
-values (111, 1, 1, 1, 2, '11/20/2022 1:00', '11/20/2022 1:00', 'A1', 'A1', false);
-
-insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
-values (1, 1, 1, now(), 60);
-
-
-select * from flight_booking fb;
-select * from passenger_manifest pm; 
-select * from payment p where amount = -200;
+select count(*) from flight_schedule_template;
+select * from flight_schedule_template;
+select * from flight_schedule where departure_date >= now();
+select count(*) from flight_schedule;
+select count(*) from flight_reservation;
+select count(*) from flight_booking;
