@@ -82,7 +82,7 @@ begin
 end;
 $$;
 
-select * from flight_total_with_id(1, '2023-03-05 00:00:00.000')
+select * from flight_total_with_id(1, '2023-03-05 00:00:00.000');
 
 create or replace function airline_total_with_id(a_id integer, flight_day timestamp)
 returns table (
@@ -111,5 +111,5 @@ begin
 end;
 $$;
 
-select * from airline_total_with_id(8, '2022-10-17 01:00:00.000')
+select * from airline_total_with_id(8, '2022-10-17 01:00:00.000');
 
