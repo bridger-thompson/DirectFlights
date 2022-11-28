@@ -1,0 +1,25 @@
+﻿@page "/admin"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using DirectFlights.Shared
+@using DirectFlights.Client.Services
+@using DirectFlights.Client.Pages.Components
+@attribute [Authorize]
+@inject FlightService service
+
+<h3>Admin</h3>
+<TabControl>
+    <TabPage Text="Flight Profits">
+    <h1 class="border border-secondary rounded shadow-sm" style="min-height: 37ex">The first tab</h1>
+    </TabPage>
+    <TabPage Text="Airline Profits">
+    <h1 class="border border-secondary rounded shadow-sm" style="min-height: 37ex">The second tab</h1>
+    </TabPage>
+    <TabPage Text="Routes">
+    <h1 class="border border-secondary rounded shadow-sm" style="min-height: 37ex">The third tab</h1>
+    </TabPage>
+</TabControl>
+
+@code {
+
+}
