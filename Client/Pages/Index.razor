@@ -3,6 +3,7 @@
 @using DirectFlights.Shared
 @using DirectFlights.Client.Models
 @inject FlightService service
+@inject HttpClient client
 
 <PageTitle>Direct Flights</PageTitle>
 
@@ -88,6 +89,7 @@
 	protected override async Task OnInitializedAsync()
 	{
 		airports = await service.GetAirports();	
+		//flights =  await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/flights/{1}/{1}");
 	}
 
 	private async Task GetFlights()

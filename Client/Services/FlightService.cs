@@ -1,4 +1,6 @@
 ﻿using DirectFlights.Shared;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+using System.Net.Http.Json;
 
 namespace DirectFlights.Client.Services
 {
@@ -57,15 +59,24 @@ namespace DirectFlights.Client.Services
 
         public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, DateTime departDate)
         {
-            var ourFlights = new List<FlightDetail>();
-            foreach (var flight in flights)
+            try
             {
-                if (flight.DepartAirport == departAirport && flight.ArriveAirport == arriveAirport /*&& flight.DepartTime.DayOfYear == departDate.DayOfYear*/)
-                {
-                    ourFlights.Add(flight);
-                }
+                return await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/flights/{departAirport}/{arriveAirport}");
             }
-            return ourFlights;
+            catch (AccessTokenNotAvailableException exception)
+            {
+                logger.LogError("Failed to retrieve flights. Access token not available: " + exception);
+                return null;
+            }
+            //var ourFlights = new List<FlightDetail>();
+            //foreach (var flight in flights)
+            //{
+            //    if (flight.DepartAirport == departAirport && flight.ArriveAirport == arriveAirport /*&& flight.DepartTime.DayOfYear == departDate.DayOfYear*/)
+            //    {
+            //        ourFlights.Add(flight);
+            //    }
+            //}
+            //return ourFlights;
         }
 
         public async Task<IEnumerable<string>> GetAirports()
