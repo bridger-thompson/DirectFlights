@@ -278,6 +278,7 @@ $$
 declare 
 	air_id 			int;
 	start_date 		date;
+	errorMsg 		varchar;
 begin 
 	for i in 1..amount loop
 		for air_id in select id from airline loop
@@ -288,9 +289,18 @@ begin
 
 			exception when 
 				sqlstate '50001' then
+					get stacked diagnostics errorMsg = MESSAGE_TEXT;
+					raise info 'Error: %', errorMsg;
 					null;
 			 	when
 				sqlstate '50002' then
+					get stacked diagnostics errorMsg = MESSAGE_TEXT;
+					raise info 'Error: %', errorMsg;
+					null;
+				when
+				sqlstate '50005' then
+					get stacked diagnostics errorMsg = MESSAGE_TEXT;
+					raise info 'Error: %', errorMsg;
 					null;
 			end;
 		end loop;		
@@ -331,12 +341,32 @@ declare
 	class_id				int;
 	start_date 				timestamp;
 	price					numeric;
+	capacity				int;
+	flight_cursor			cursor for select * from flight_schedule;
+	pass_cursor				cursor for select id from passenger;
 begin 
-	for passenger_id in select id from passenger loop
-		begin
-			select fs1.id into flight_schedule_id 
-				from flight_schedule fs1
-				order by random() limit 1;
+	open pass_cursor;
+	for flight in flight_cursor loop
+		
+		flight_schedule_id := flight.id;
+		
+		select sum(ptsc.capacity) into capacity
+			from available_plane ap 
+			inner join plane p 
+				on (ap.plane_id = p.id)
+			inner join plane_type pt 
+				on (p.plane_type_id = pt.id)
+			inner join plane_type_seat_class ptsc 
+				on (pt.id = ptsc.plane_type_id)
+			where ap.id = flight.assigned_plane;
+		
+		for i in 1..capacity loop			
+			begin		
+				
+			fetch pass_cursor into passenger_id;
+			if passenger_id is null then
+				fetch first from pass_cursor into passenger_id;
+			end if;
 				
 			select fc.id, fc.suggested_cost into class_id, price
 				from flight_seat_class fc
@@ -354,8 +384,10 @@ begin
 			exception 
 				when sqlstate '50003' then
 					null;
-		end;
+			end;
+		end loop;		
 	end loop;
+	close pass_cursor;
 	commit;
 end;
 $$;
@@ -558,20 +590,7 @@ begin
 		depart_datetime := departure_date + schedule_template.take_off_time;
 		arrival_datetime := departure_date + schedule_template.landing_time;
 	
-		select ap.id into plane_id
-			from plane_type pt
-			inner join plane p 
-				on (pt.id = p.plane_type_id)
-			inner join available_plane ap 
-				on (ap.plane_id = p.id)
-			left join flight_schedule fs2 
-				on (ap.id = fs2.assigned_plane)
-			where pt.id = schedule_template.plane_type_id and 
-				ap.in_maintenence = false and 
-				p.airline_id = air_id and 
-				((fs2.departure_date < depart_datetime and fs2.arrival_date < arrival_datetime) or
-				(fs2.departure_date is null and fs2.arrival_date is null))			
-			order by random() limit 1;
+		select get_available_plane(schedule_template.plane_type_id, air_id, depart_datetime::timestamp) into plane_id;
 		
 		if plane_id is not null then		
 			insert into flight_schedule(flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
@@ -584,6 +603,35 @@ end;
 $$;	
 
 /* Functions */
+
+create or replace function get_available_plane(plane_type integer, airline integer, depart_date timestamp)
+	returns integer
+	language plpgsql
+	as
+$$
+declare 
+	plane_id		int;
+	plane_cursor	cursor for 
+						select ap.id 
+							from available_plane ap
+							inner join plane p
+								on (ap.plane_id = p.id)
+							where p.airline_id = airline and 
+							p.plane_type_id = plane_type and 
+							in_maintenence = false;
+begin 
+	for plane in plane_cursor loop
+		select fs1.assigned_plane into plane_id
+			from flight_schedule fs1
+			where fs1.assigned_plane = plane.id
+			and (depart_date between fs1.departure_date and fs1.arrival_date);
+		if plane_id is null then
+			return plane.id;
+		end if;
+	end loop;
+	raise exception 'No planes available' using errcode = 50005;
+end;
+$$;
 
 create or replace function get_random_number(start_value integer, max_value integer)
 	returns integer
@@ -864,30 +912,31 @@ create or replace function check_plane_availability()
 $$
 declare 
 	maintenence 	bool;
-	flight_cursor 	cursor for
-					select * 
-						from flight_schedule f 
-						where f.assigned_plane = new.assigned_plane;
 	route_retired 	timestamp;
+	plane_id		int;
 begin
 	select ap.in_maintenence into maintenence
 		from available_plane ap
-		where plane_id = new.assigned_plane;
-	if maintenence is false then 		
-		for flight in flight_cursor loop 			
-			if new.departure_date between flight.departure_date and flight.arrival_date then 
-				raise exception 'Plane % already scheduled', new.assigned_plane using errcode = 50001;
-			else 				
-				select fr.date_retired into route_retired
-					from flight_schedule_template fr 
-					where fr.flight_number = new.flight_number and fr.segment_number = new.segment_number;
-				if route_retired is null then
-					return new;
-				else
-					raise exception 'Flight route retired' using errcode = 50002;
-				end if;
-			end if;			
-		end loop;
+		where ap.plane_id = new.assigned_plane;
+	if maintenence is false then 
+	
+		select fs1.assigned_plane into plane_id
+			from flight_schedule fs1
+			where fs1.assigned_plane = new.assigned_plane
+			and (new.departure_date between fs1.departure_date and fs1.arrival_date);
+			
+		if plane_id is not null then 
+			raise exception 'Plane % already scheduled', new.assigned_plane using errcode = 50001;
+		else 				
+			select fr.date_retired into route_retired
+				from flight_schedule_template fr 
+				where fr.flight_number = new.flight_number and fr.segment_number = new.segment_number;
+			if route_retired is null then
+				return new;
+			else
+				raise exception 'Flight route retired' using errcode = 50002;
+			end if;
+		end if;
 	else 
 		raise exception 'Plane % in maintenence', new.assigned_plane using errcode = 50001;
 	end if;
@@ -910,8 +959,8 @@ $$
 begin 
 	call pop_airline(10);
 	call pop_airport(10);
-	call pop_plane_type(10);
-	call pop_plane(100);
+	call pop_plane_type(5);
+	call pop_plane(30);
 	call pop_available_plane();
 	call pop_seat_class();
 	call pop_plane_type_seat_class();
@@ -929,8 +978,8 @@ create or replace procedure pop_second_chain()
 	as 
 $$
 begin 
-	call pop_staff(5);
-	call pop_passenger(1000);
+	call pop_staff(100);
+	call pop_passenger(50000);
 	call pop_flight_reservation();
 	call pop_flight_booking();
 	call pop_passenger_manifest();
@@ -950,9 +999,7 @@ call pop_all();
 
 select count(*) from flight_schedule_template;
 select * from flight_schedule_template;
-select * from flight_schedule where assigned_plane < 10;
+select * from flight_schedule order by id;
 select count(*) from flight_schedule;
 select count(*) from flight_reservation;
 select count(*) from flight_booking;
-
-select count(*) from plane p 
