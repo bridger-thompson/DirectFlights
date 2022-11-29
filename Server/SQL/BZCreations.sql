@@ -258,7 +258,7 @@ begin
 end;
 $$;
 
-create or replace procedure pop_seat_class(amount integer)
+create or replace procedure pop_seat_class()
 	language plpgsql
 	as 
 $$
@@ -278,25 +278,14 @@ $$
 declare 
 	air_id 			int;
 	start_date 		date;
-	flight_id		int;
-	is_cancelled	bool;
 begin 
 	for i in 1..amount loop
 		for air_id in select id from airline loop
-			begin				
+			begin
 				start_date := get_random_date(now()::date, date_range);
 			
 				call create_flight_schedule(start_date, air_id);
-			
-				select get_random_bool() into is_cancelled;
-				if is_cancelled then
-					select f.id into flight_id
-						from flight_schedule f
-						order by random() limit 1;
-					update flight_schedule 
-						set cancelled = is_cancelled 
-						where id=flight_id;
-				end if;
+
 			exception when 
 				sqlstate '50001' then
 					null;
@@ -307,6 +296,28 @@ begin
 		end loop;		
 	end loop;
 	commit;
+end;
+$$;
+
+create or replace procedure pop_cancelled_flights(amount integer)
+	language plpgsql
+	as 
+$$
+declare 
+	is_cancelled	bool;
+	flight_id		int;
+begin 
+	for i in 1..amount loop
+		select get_random_bool() into is_cancelled;
+		if is_cancelled then
+			select f.id into flight_id
+				from flight_schedule f
+				order by random() limit 1;
+			update flight_schedule 
+				set cancelled = is_cancelled 
+				where id=flight_id;
+		end if;
+	end loop;
 end;
 $$;
 
@@ -525,7 +536,7 @@ begin
 	for flight in select id from flight_schedule loop		
 		for seat in select id from seat_class loop			
 			insert into flight_seat_class (seat_id, flight_id, suggested_cost)
-				values (seat, flight, get_random_number(100,300));			
+				values (seat, flight, get_random_number(30,300));			
 		end loop;	
 	end loop;	
 end;
@@ -899,14 +910,15 @@ $$
 begin 
 	call pop_airline(10);
 	call pop_airport(10);
-	call pop_plane_type(60);
+	call pop_plane_type(10);
 	call pop_plane(100);
 	call pop_available_plane();
-	call pop_seat_class(3);
+	call pop_seat_class();
 	call pop_plane_type_seat_class();
-	call pop_flight_schedule_template(100);
-	call pop_flight_schedule(5, '-180 days');
-	call pop_flight_schedule(5, '30 days');
+	call pop_flight_schedule_template(20);
+	call pop_flight_schedule(100, '-180 days');
+	call pop_flight_schedule(100, '180 days');
+	call pop_cancelled_flights(1000);
 	call pop_flight_seat_class();
 	call pop_flight_log();
 end;
@@ -938,7 +950,9 @@ call pop_all();
 
 select count(*) from flight_schedule_template;
 select * from flight_schedule_template;
-select * from flight_schedule where departure_date >= now();
+select * from flight_schedule where assigned_plane < 10;
 select count(*) from flight_schedule;
 select count(*) from flight_reservation;
 select count(*) from flight_booking;
+
+select count(*) from plane p 
