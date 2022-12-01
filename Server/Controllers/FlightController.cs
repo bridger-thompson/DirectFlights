@@ -60,7 +60,7 @@ namespace DirectFlights.Server.Controllers
             this.logger = logger;
         }
 
-        [HttpGet("flights/{departAirport}/{arriveAirport}")]
+        [HttpGet("{departAirport}/{arriveAirport}")]
         public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport)
         {
             logger.LogInformation("here");
@@ -74,6 +74,29 @@ namespace DirectFlights.Server.Controllers
             }
             logger.LogInformation(ourFlights.ToString());
             return flights;
+        }
+
+        [HttpGet("airports")]
+        public async Task<IEnumerable<string>> GetAirports()
+        {
+            var airports = new List<string>()
+            {
+                "SLC", "LAX", "PHX"
+            };
+            return airports;
+        }
+
+        [HttpGet("{flightDetailId}")]
+        public async Task<FlightDetail> GetFlight(int flightDetailId)
+        {
+            foreach (var flight in flights)
+            {
+                if (flight.Id == flightDetailId)
+                {
+                    return flight;
+                }
+            }
+            throw new Exception("Flight not found");
         }
     }
 }
