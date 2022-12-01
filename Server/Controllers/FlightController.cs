@@ -8,7 +8,8 @@ namespace DirectFlights.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [RequiredScope(RequiredScopesConfigurationKey = "AzureAdB2C:Scopes")]
+    //[RequiredScope(RequiredScopesConfigurationKey = "AzureAdB2C:Scopes")]
+    [Authorize]
     public class FlightController : ControllerBase
     {
         private readonly ILogger<FlightController> logger;

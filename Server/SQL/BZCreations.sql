@@ -276,32 +276,35 @@ create or replace procedure pop_flight_schedule(amount integer, date_range inter
 	as 
 $$
 declare 
-	air_id 			int;
+	air 			record;
 	start_date 		date;
 	errorMsg 		varchar;
 begin 
 	for i in 1..amount loop
-		for air_id in select id from airline loop
+		for air in select * from airline loop
 			begin
-				start_date := get_random_date(now()::date, date_range);
-			
-				call create_flight_schedule(start_date, air_id);
+				begin
+					start_date := get_random_date(now()::date, date_range);
+				
+					call create_flight_schedule(start_date, air.id);
 
-			exception when 
-				sqlstate '50001' then
-					get stacked diagnostics errorMsg = MESSAGE_TEXT;
-					raise info 'Error: %', errorMsg;
-					null;
-			 	when
-				sqlstate '50002' then
-					get stacked diagnostics errorMsg = MESSAGE_TEXT;
-					raise info 'Error: %', errorMsg;
-					null;
-				when
-				sqlstate '50005' then
-					get stacked diagnostics errorMsg = MESSAGE_TEXT;
-					raise info 'Error: %', errorMsg;
-					null;
+					exception when 
+						sqlstate '50001' then
+							get stacked diagnostics errorMsg = MESSAGE_TEXT;
+							raise info 'Error: %', errorMsg;
+							null;
+					 	when
+						sqlstate '50002' then
+							get stacked diagnostics errorMsg = MESSAGE_TEXT;
+							raise info 'Error: %', errorMsg;
+							null;
+						when
+						sqlstate '50005' then
+							get stacked diagnostics errorMsg = MESSAGE_TEXT;
+							raise info 'Error: %', errorMsg;
+							null;
+				end;
+				commit;
 			end;
 		end loop;		
 	end loop;
@@ -344,48 +347,50 @@ declare
 	capacity				int;
 	flight_cursor			cursor for select * from flight_schedule;
 	pass_cursor				cursor for select id from passenger;
-begin 
-	open pass_cursor;
+begin 	
 	for flight in flight_cursor loop
-		
-		flight_schedule_id := flight.id;
-		
-		select sum(ptsc.capacity) into capacity
-			from available_plane ap 
-			inner join plane p 
-				on (ap.plane_id = p.id)
-			inner join plane_type pt 
-				on (p.plane_type_id = pt.id)
-			inner join plane_type_seat_class ptsc 
-				on (pt.id = ptsc.plane_type_id)
-			where ap.id = flight.assigned_plane;
-		
-		for i in 1..capacity loop			
-			begin		
-				
-			fetch pass_cursor into passenger_id;
-			if passenger_id is null then
-				fetch first from pass_cursor into passenger_id;
-			end if;
-				
-			select fc.id, fc.suggested_cost into class_id, price
-				from flight_seat_class fc
-				inner join flight_schedule fs3
-					on (fs3.id = fc.flight_id)
-				where fc.flight_id = flight_schedule_id
-				order by random() limit 1;
+		begin
+			open pass_cursor;
+			flight_schedule_id := flight.id;
 			
-			select fs2.departure_date into start_date
-				from flight_schedule fs2
-				where fs2.id = flight_schedule_id;
+			select sum(ptsc.capacity) into capacity
+				from available_plane ap 
+				inner join plane p 
+					on (ap.plane_id = p.id)
+				inner join plane_type pt 
+					on (p.plane_type_id = pt.id)
+				inner join plane_type_seat_class ptsc 
+					on (pt.id = ptsc.plane_type_id)
+				where ap.id = flight.assigned_plane;
+		
+			for i in 1..capacity loop			
+				begin					
+					fetch pass_cursor into passenger_id;
+					if passenger_id is null then
+						fetch first from pass_cursor into passenger_id;
+					end if;
+						
+					select fc.id, fc.suggested_cost into class_id, price
+						from flight_seat_class fc
+						inner join flight_schedule fs3
+							on (fs3.id = fc.flight_id)
+						where fc.flight_id = flight_schedule_id
+						order by random() limit 1;
+					
+					select fs2.departure_date into start_date
+						from flight_schedule fs2
+						where fs2.id = flight_schedule_id;
+						
+					insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
+						values (passenger_id, flight_schedule_id, class_id, get_random_datetime(start_date, '-30 days'), price);
 				
-			insert into flight_reservation (passenger_id, flight_schedule_id, class_id, reservation_date, seat_cost)
-				values (passenger_id, flight_schedule_id, class_id, get_random_datetime(start_date, '-30 days'), price);
-			exception 
-				when sqlstate '50003' then
-					null;
-			end;
-		end loop;		
+				exception 
+					when sqlstate '50003' then
+						null;
+				end;
+			end loop;
+		commit;
+		end;
 	end loop;
 	close pass_cursor;
 	commit;
@@ -400,12 +405,15 @@ declare
 	flight_res_id 		int;
 	staff_id			int;
 	start_date 			timestamp;
-	flight_res_cursor	cursor for select fr.id from flight_reservation fr
+	commit_count		int;
+	flight_res			record; 
+begin 
+	commit_count := 0;
+	for flight_res in select fr.id from flight_reservation fr
 							inner join flight_schedule fs2
 								on (fr.flight_schedule_id = fs2.id)
-							where fs2.cancelled is not true;
-begin 
-	for flight_res in flight_res_cursor loop
+							where fs2.cancelled is not true
+	loop
 		begin
 			flight_res_id := flight_res.id;
 			select id into staff_id 
@@ -418,12 +426,19 @@ begin
 				inner join flight_schedule fs2 
 					on (fr.flight_schedule_id = fs2.id)
 				where fr.id = flight_res_id;
-			
-			insert into flight_booking (flight_reservation_id, book_date, staff_id)
-				values (flight_res_id, get_random_datetime(start_date,'-2 hour'), staff_id);
-			exception when
-				sqlstate '50004' then
-					null;
+			begin
+				insert into flight_booking (flight_reservation_id, book_date, staff_id)
+					values (flight_res_id, get_random_datetime(start_date,'-2 hour'), staff_id);
+				commit_count := commit_count+1;
+				
+				exception when
+					sqlstate '50004' then
+						null;
+			end;
+			if commit_count = 1000 then
+				commit;
+				commit_count := 0;
+			end if;
 		end;
 	end loop;
 	commit;
@@ -451,15 +466,30 @@ create or replace procedure pop_passenger_manifest()
 $$
 declare 
 	flight_booking_id	int;
-	curs cursor for select flight_booking.id as id, flight_schedule.departure_date as dep_date from flight_booking 
+	flight				record;
+	staff_id			int;
+	commit_count		int;
+begin 
+	commit_count := 0;
+	for flight in select flight_booking.id as id, flight_schedule.departure_date as dep_date from flight_booking 
 		inner join flight_reservation
 			on (flight_reservation.id = flight_booking.flight_reservation_id)
 		inner join flight_schedule
-			on (flight_schedule.id = flight_reservation.flight_schedule_id);
-begin 
-	for flight in curs loop
-		insert into passenger_manifest (flight_booking_id, boarding_date, staff_id)
-			values (flight.id, flight.dep_date, 2);
+			on (flight_schedule.id = flight_reservation.flight_schedule_id)
+	loop
+		begin
+			select id into staff_id 
+					from staff
+					where id != 1
+					order by random() limit 1;
+			insert into passenger_manifest (flight_booking_id, boarding_date, staff_id)
+				values (flight.id, flight.dep_date, staff_id);
+			commit_count := commit_count+1;
+			if commit_count = 1000 then
+				commit;
+				commit_count := 0;
+			end if;
+		end;
 	end loop;
 	commit;
 end;
@@ -580,24 +610,24 @@ create or replace procedure create_flight_schedule(departure_date date, air_id i
 $$
 declare 
 	plane_id					int;
-	schedule_template_cursor	cursor for select * from flight_schedule_template fst where fst.airline_id = air_id;
+	schedule_template			record;
 	depart_datetime				timestamp;
 	arrival_datetime			timestamp;
 begin
-	
-	for schedule_template in schedule_template_cursor loop
+	for schedule_template in select * from flight_schedule_template fst where fst.airline_id = air_id loop
+		begin
+			depart_datetime := departure_date + schedule_template.take_off_time;
+			arrival_datetime := departure_date + schedule_template.landing_time;
 		
-		depart_datetime := departure_date + schedule_template.take_off_time;
-		arrival_datetime := departure_date + schedule_template.landing_time;
-	
-		select get_available_plane(schedule_template.plane_type_id, air_id, depart_datetime::timestamp) into plane_id;
-		
-		if plane_id is not null then		
-			insert into flight_schedule(flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
-				values(schedule_template.flight_number, schedule_template.segment_number, 
-					plane_id, schedule_template.departure_airport_id, schedule_template.arrival_airport_id, 
-					depart_datetime, arrival_datetime, get_random_gate(), get_random_gate(), false);
-		end if;
+			select get_available_plane(schedule_template.plane_type_id, air_id, depart_datetime::timestamp) into plane_id;
+			
+			if plane_id is not null then
+				insert into flight_schedule(flight_number, segment_number, assigned_plane, departure_airport_id, arrival_airport_id, departure_date, arrival_date, departure_gate, arrival_gate, cancelled)
+					values(schedule_template.flight_number, schedule_template.segment_number, 
+						plane_id, schedule_template.departure_airport_id, schedule_template.arrival_airport_id, 
+						depart_datetime, arrival_datetime, get_random_gate(), get_random_gate(), false);
+			end if;
+		end;
 	end loop;
 end;
 $$;	
@@ -960,12 +990,12 @@ begin
 	call pop_airline(10);
 	call pop_airport(10);
 	call pop_plane_type(5);
-	call pop_plane(30);
+	call pop_plane(40);
 	call pop_available_plane();
 	call pop_seat_class();
 	call pop_plane_type_seat_class();
 	call pop_flight_schedule_template(20);
-	call pop_flight_schedule(100, '-180 days');
+	call pop_flight_schedule(1500, '-180 days');
 	call pop_flight_schedule(100, '180 days');
 	call pop_cancelled_flights(1000);
 	call pop_flight_seat_class();
@@ -979,7 +1009,7 @@ create or replace procedure pop_second_chain()
 $$
 begin 
 	call pop_staff(100);
-	call pop_passenger(50000);
+	call pop_passenger(1000);
 	call pop_flight_reservation();
 	call pop_flight_booking();
 	call pop_passenger_manifest();
@@ -996,10 +1026,3 @@ begin
 end;
 $$;
 call pop_all();
-
-select count(*) from flight_schedule_template;
-select * from flight_schedule_template;
-select * from flight_schedule order by id;
-select count(*) from flight_schedule;
-select count(*) from flight_reservation;
-select count(*) from flight_booking;
