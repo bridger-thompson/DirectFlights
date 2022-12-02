@@ -31,7 +31,8 @@ namespace DirectFlights.Client.Services
         public async Task<IEnumerable<string>> GetAirports()
         {
 
-            return await client.GetFromJsonAsync<IEnumerable<string>>("api/Flight/airports");
+            var airports = await client.GetFromJsonAsync<IEnumerable<string>>("api/Flight/airports");
+            return airports;
         }
 
         public async Task<string> RegisterPassengerFlight()

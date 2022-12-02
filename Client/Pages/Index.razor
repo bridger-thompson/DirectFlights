@@ -20,9 +20,16 @@
 					<span class="input-group-text"><i class="oi oi-location"></i></span>
 					<InputSelect class="form-control" @bind-Value="flightPlan.DepartAirport" >
 						<option selected hidden>Depart Airport</option>
-						@foreach (var airport in airports)
+						@if (airports == null) 
 						{
-							<option value=@airport>@airport</option>
+							<option>Loading...</option>
+						}
+						else
+						{
+							@foreach (var airport in airports)
+							{
+								<option value=@airport>@airport</option>
+							}
 						}
 					</InputSelect>
 				</div>
@@ -34,9 +41,16 @@
 					<span class="input-group-text"><i class="oi oi-location"></i></span>
 					<InputSelect class="form-control" @bind-Value=flightPlan.ArriveAirport >
 						<option selected hidden>Arrive Airport</option>
-						@foreach (var airport in airports)
+						@if (airports == null) 
 						{
-							<option value=@airport>@airport</option>
+							<option>Loading...</option>
+						}
+						else
+						{
+							@foreach (var airport in airports)
+							{
+								<option value=@airport>@airport</option>
+							}
 						}
 					</InputSelect>
 				</div>
@@ -90,7 +104,8 @@
 	private IEnumerable<FlightDetail> flights;
 	protected override async Task OnInitializedAsync()
 	{
-		airports = await service.GetAirports();	
+		airports = await service.GetAirports();
+		StateHasChanged();
 		//flights =  await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/flights/{1}/{1}");
 	}
 
