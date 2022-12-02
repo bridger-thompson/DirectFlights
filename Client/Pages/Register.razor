@@ -12,7 +12,7 @@
 			<label class="form-label">Tickets:</label>
 		</div>
 		<div class="col">
-			<input type="number" class="form-control" @bind="NumTickets"  min=1>
+			<input type="number" class="form-control" @bind="NumTickets"  min=1 max=50>
 		</div>
 	</div>
 	<hr />
@@ -40,7 +40,7 @@
 			<h3 class="my-auto">Total: @costTotal</h3>
 		</div>
 		<div class="col text-end">
-			<button class="btn btn-success"><NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost) + "/count/" + NumTickets)>Select and Review</NavLink></button>
+			<NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost) + "/count/" + NumTickets)><button class="btn btn-success">Select and Review</button></NavLink>
 		</div>
 	</div>
 }
