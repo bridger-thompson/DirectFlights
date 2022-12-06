@@ -19,7 +19,7 @@
 				<label class="me-2 my-auto">Leaving From:</label>
 				<div class="input-group">
 					<span class="input-group-text"><i class="oi oi-location"></i></span>
-					<InputSelect class="form-control" @bind-Value="flightPlan.DepartAirport" >
+					<InputSelect class="form-control" @bind-Value="flightPlan.FromAirport" >
 						<option selected hidden>Depart Airport</option>
 						@if (airports == null) 
 						{
@@ -40,7 +40,7 @@
 				<label class="me-2 my-auto">Going To:</label>
 				<div class="input-group">
 					<span class="input-group-text"><i class="oi oi-location"></i></span>
-					<InputSelect class="form-control" @bind-Value=flightPlan.ArriveAirport >
+					<InputSelect class="form-control" @bind-Value=flightPlan.ToAirport >
 						<option selected hidden>Arrive Airport</option>
 						@if (airports == null) 
 						{
@@ -78,15 +78,15 @@
 				<div class="card-body">
 					<div class="row">
 						<div class="col">
-							<div class="fw-bold fs-5">@flight.DepartTime.ToShortTimeString() - @flight.ArriveTime.ToShortTimeString()</div>
-							<div>@flight.DepartAirport - @flight.ArriveAirport</div>
+							<div class="fw-bold fs-5">@flight.DepartureDate.ToShortTimeString() - @flight.ArrivalDate.ToShortTimeString()</div>
+							<div>@flight.FromAirport - @flight.ToAirport</div>
 							<div>@flight.Airline</div>
 						</div>
 						<div class="col text-center">
-							<div>@calculateDuration(flight.DepartTime, flight.ArriveTime)</div>
+							<div>@calculateDuration(flight.DepartureDate, flight.ArrivalDate)</div>
 						</div>
 						<div class="col text-end my-auto">
-							<div class="fw-bold fs-5">$@flight.Seats.ElementAt(2).Cost</div>
+							@*<div class="fw-bold fs-5">$@flight.Seats.ElementAt(2).Cost</div>*@
 						</div>
 					</div>
 				</div>
@@ -112,7 +112,7 @@
 
 	private async Task GetFlights()
 	{
-		flights = await service.GetFlights(flightPlan.DepartAirport, flightPlan.ArriveAirport, flightPlan.DepartDate);
+		flights = await service.GetFlights(flightPlan.FromAirport, flightPlan.ToAirport, flightPlan.DepartDate);
 	}
 
 	private string calculateDuration(DateTime depart, DateTime arrive)

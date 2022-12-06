@@ -3,7 +3,7 @@
 
 @if (flight != null)
 {
-	<div class="fw-bold fs-5 ">@flight.DepartTime.ToShortTimeString() - @flight.ArriveTime.ToShortTimeString()</div>
+	<div class="fw-bold fs-5 ">@flight.DepartureDate.ToShortTimeString() - @flight.ArrivalDate.ToShortTimeString()</div>
 	<div class="row">
 		<div class="col my-auto">
 			<div>@flight.Airline</div>
@@ -18,20 +18,31 @@
 	<hr />
 	<EditForm Model=model>
 		<InputRadioGroup Name="Cost" @bind-Value=SeatCost>
-			@foreach (var seat in flight.Seats)
+			@*@foreach (var seat in flight.Seats)
 			{
 				<div class="row border-bottom fs-5">
 					<div class="col-1">
-						<InputRadio Name="Cost" Value="@seat.Cost" style="border:none;"/>
+						<InputRadio Name="Cost" Value="50" style="border:none;"/>
 					</div>
 					<div class="col px-0">
-						@seat.Name
+						@seat.Seat
 					</div>
 					<div class="col text-end fw-bold">
-						$@seat.Cost
+						$@seat.Seat
 					</div>
 				</div>
-			}
+			}*@
+			@*<div class="row border-bottom fs-5">
+					<div class="col-1">
+						<InputRadio Name="Cost" Value="@flight.SeatCost" style="border:none;"/>
+					</div>
+					<div class="col px-0">
+						@flight.SeatName
+					</div>
+					<div class="col text-end fw-bold">
+						$@flight.SeatCost
+					</div>
+				</div>*@
 		</InputRadioGroup>
 	</EditForm>
 	<div class="mt-4 text-secondary">Tax: @taxTotal</div>
@@ -40,7 +51,7 @@
 			<h3 class="my-auto">Total: @costTotal</h3>
 		</div>
 		<div class="col text-end">
-			<NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost) + "/count/" + NumTickets)><button class="btn btn-success">Select and Review</button></NavLink>
+			@*<NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost) + "/count/" + NumTickets)><button class="btn btn-success">Select and Review</button></NavLink>*@
 		</div>
 	</div>
 }
@@ -62,7 +73,8 @@ else
 
 	protected async override Task OnInitializedAsync()
 	{
-		model.Cost = flight.Seats.ElementAt(2).Cost;
+		//model.Cost = flight.Seats.ElementAt(2).;
+		model.Cost = 50;
 		await CalculateTotals();
 	}
 
@@ -71,21 +83,23 @@ else
 		public double Cost { get; set; }
 	}
 
-	private int GetSeatId(double cost)
+	private string GetSeatId(double cost)
 	{
-		foreach (var seat in flight.Seats)
-		{
-			if (seat.Cost == cost)
-			{
-				return seat.Id;
-			}
-		}
-		return 0;
+		return "couch";
+		//foreach (var seat in flight.Seats)
+		//{
+		//	if (seat.Cost == cost)
+		//	{
+		//		return seat.Id;
+		//	}
+		//}
+		//return 0;
 	}
 
 	private async Task<string> GetTotal(double rate)
 	{
-		return await service.GetTotal(flight.Id, GetSeatId(model.Cost), NumTickets, rate);
+		//return await service.GetTotal(flight.FlightId, flight.SeatName, NumTickets, rate);
+		throw new NotImplementedException();
 	}
 
 	public async Task CalculateTotals()

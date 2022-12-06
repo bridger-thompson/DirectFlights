@@ -19,7 +19,7 @@ namespace DirectFlights.Client.Services
         {
             try
             {
-                return await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/{departAirport}/{arriveAirport}");
+                return await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/{departAirport}/{arriveAirport}/{departDate.ToLongDateString()}");
             }
             catch (AccessTokenNotAvailableException exception)
             {
@@ -43,14 +43,14 @@ namespace DirectFlights.Client.Services
 
         public async Task<string> GetTotal(int flightDetailId, int seatId, int numTickets, double rate)
         {
-            var flight = await client.GetFromJsonAsync<FlightDetail>($"api/Flight/{flightDetailId}");
-            foreach (var seat in flight.Seats)
-            {
-                if (seat.Id == seatId)
-                {
-                    return (seat.Cost * rate * numTickets).ToString("C2");
-                }
-            }
+            //var flight = await client.GetFromJsonAsync<FlightDetail>($"api/Flight/{flightDetailId}");
+            //foreach (var seat in flight.Seats)
+            //{
+            //    if (seat.Id == seatId)
+            //    {
+            //        return (seat.Cost * rate * numTickets).ToString("C2");
+            //    }
+            //}
             throw new Exception("Unable to get total cost");
         }
 

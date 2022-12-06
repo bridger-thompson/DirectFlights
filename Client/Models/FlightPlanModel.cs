@@ -7,8 +7,8 @@ namespace DirectFlights.Client.Models
         [Required]
         public DateTime DepartDate { get; set; } = DateTime.Now;
         [Required]
-        public string DepartAirport { get; set; }
+        public string FromAirport { get; set; }
         [Required]
-        public string ArriveAirport { get; set; }
+        public string ToAirport { get; set; }
     }
 }

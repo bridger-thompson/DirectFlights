@@ -1,6 +1,10 @@
+using DirectFlights.Server.Data;
+using DirectFlights.Server.Repository;
+using DirectFlights.Shared;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using System.Text.Json.Serialization;
 
@@ -9,6 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAdB2C"));
+builder.Services.AddDbContext<FlightDBContext>(options => options.UseNpgsql(builder.Configuration["ConnectionString"]));
+builder.Services.AddScoped<IDataRepo, FlightRepo>();
+builder.Services.AddScoped<FlightApplication>();
+builder.Services.AddScoped<FlightDBContext>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

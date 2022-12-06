@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DirectFlights.Shared
 {
-    public class FlightDetail
+    public partial class FlightDetail
     {
         public int Id { get; set; }
-        public DateTime DepartTime { get; set; }
-        public DateTime ArriveTime { get; set; }
-        public string DepartAirport { get; set; }
-        public string ArriveAirport { get; set; }
         public string Airline { get; set; }
-        public IEnumerable<Seat> Seats { get; set; }
+        public string FromAirport { get; set; }
+        public DateTime DepartureDate { get; set; }
+        public string ToAirport { get; set; }
+        public DateTime ArrivalDate { get; set; }
+        public int? SeatId { get; set; }
     }
 }
