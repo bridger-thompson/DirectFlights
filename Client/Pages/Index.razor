@@ -21,7 +21,7 @@
 					<span class="input-group-text"><i class="oi oi-location"></i></span>
 					<InputSelect class="form-control" @bind-Value="flightPlan.FromAirport" >
 						<option selected hidden>Depart Airport</option>
-						@if (airports == null) 
+						@if (airports == null)
 						{
 							<option>Loading...</option>
 						}
@@ -42,7 +42,7 @@
 					<span class="input-group-text"><i class="oi oi-location"></i></span>
 					<InputSelect class="form-control" @bind-Value=flightPlan.ToAirport >
 						<option selected hidden>Arrive Airport</option>
-						@if (airports == null) 
+						@if (airports == null)
 						{
 							<option>Loading...</option>
 						}
@@ -86,7 +86,7 @@
 							<div>@calculateDuration(flight.DepartureDate, flight.ArrivalDate)</div>
 						</div>
 						<div class="col text-end my-auto">
-							@*<div class="fw-bold fs-5">$@flight.Seats.ElementAt(2).Cost</div>*@
+							<div class="fw-bold fs-5">$@flight.SeatClasses.Find(s => s.Name == "Couch Class").Cost</div>
 						</div>
 					</div>
 				</div>
@@ -97,17 +97,16 @@
 
 
 @code {
-	[CascadingParameter] public IModalService Modal { get; set; }  = default!;
+	[CascadingParameter] public IModalService Modal { get; set; } = default!;
 	private ModalParameters parameters = new ModalParameters();
 
 	private FlightPlanModel flightPlan = new();
 	private IEnumerable<string> airports;
-	private IEnumerable<FlightDetail> flights;
+	private IEnumerable<FlightDetailDTO> flights;
 	protected override async Task OnInitializedAsync()
 	{
 		airports = await service.GetAirports();
 		StateHasChanged();
-		//flights =  await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/flights/{1}/{1}");
 	}
 
 	private async Task GetFlights()
@@ -121,7 +120,7 @@
 		return duration.Hours + "h " + duration.Minutes + "m";
 	}
 
-	private void showModal(FlightDetail flight)
+	private void showModal(FlightDetailDTO flight)
 	{
 		parameters.Add(nameof(flight), flight);
 		Modal.Show<Register>("Review Flight Details", parameters);

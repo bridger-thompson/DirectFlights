@@ -20,9 +20,9 @@ namespace DirectFlights.Server.Repository
             return airports;
         }
 
-        public async Task<FlightDetail> GetFlight(int flightDetailId)
+        public async Task<IEnumerable<FlightDetail>> GetAllFlightsOfId(int flightDetailId)
         {
-            throw new NotImplementedException();
+            return await context.FlightDetails.Where(f => f.Id == flightDetailId).ToListAsync();
         }
 
         public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, string departDate)
@@ -31,8 +31,19 @@ namespace DirectFlights.Server.Repository
             var flights = await context.FlightDetails
                 .Where(flight => flight.FromAirport == departAirport && flight.ToAirport == arriveAirport && flight.DepartureDate.Date == date.Date)
                 .ToListAsync();
-            logger.LogInformation(flights.ToString());
             return flights;
+        }
+
+        public async Task<Seat> GetSeat(int seatId)
+        {
+            var flight_seat = await context.FlightSeatClasses.FirstOrDefaultAsync(f => f.SeatId == seatId);
+            var seat_class = await context.SeatClasses.FirstOrDefaultAsync(s => s.Id == seatId);
+            Seat seat = new Seat()
+            {
+                Name = seat_class.Name,
+                Cost = flight_seat.SuggestedCost
+            };
+            return seat;
         }
     }
 }

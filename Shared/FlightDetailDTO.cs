@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace DirectFlights.Shared
 {
-    public partial class FlightDetail
+    public class FlightDetailDTO
     {
         public int Id { get; set; }
         public string Airline { get; set; }
@@ -11,6 +14,6 @@ namespace DirectFlights.Shared
         public DateTime DepartureDate { get; set; }
         public string ToAirport { get; set; }
         public DateTime ArrivalDate { get; set; }
-        public int SeatId { get; set; }
+        public List<Seat> SeatClasses { get; set; }
     }
 }

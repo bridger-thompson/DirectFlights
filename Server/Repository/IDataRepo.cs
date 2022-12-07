@@ -6,6 +6,7 @@ namespace DirectFlights.Server.Repository
     {
         public Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, string departDate);
         public Task<IEnumerable<string>> GetAirports();
-        public Task<FlightDetail> GetFlight(int flightDetailId);
+        public Task<IEnumerable<FlightDetail>> GetAllFlightsOfId(int flightDetailId);
+        public Task<Seat> GetSeat(int seatId);
     }
 }

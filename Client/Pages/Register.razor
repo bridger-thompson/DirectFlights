@@ -18,31 +18,20 @@
 	<hr />
 	<EditForm Model=model>
 		<InputRadioGroup Name="Cost" @bind-Value=SeatCost>
-			@*@foreach (var seat in flight.Seats)
+			@foreach (var seat in flight.SeatClasses)
 			{
 				<div class="row border-bottom fs-5">
 					<div class="col-1">
-						<InputRadio Name="Cost" Value="50" style="border:none;"/>
+						<InputRadio Name="Cost" Value="@seat.Cost" style="border:none;"/>
 					</div>
 					<div class="col px-0">
-						@seat.Seat
+						@seat.Name
 					</div>
 					<div class="col text-end fw-bold">
-						$@seat.Seat
+						$@seat.Cost
 					</div>
 				</div>
-			}*@
-			@*<div class="row border-bottom fs-5">
-					<div class="col-1">
-						<InputRadio Name="Cost" Value="@flight.SeatCost" style="border:none;"/>
-					</div>
-					<div class="col px-0">
-						@flight.SeatName
-					</div>
-					<div class="col text-end fw-bold">
-						$@flight.SeatCost
-					</div>
-				</div>*@
+			}
 		</InputRadioGroup>
 	</EditForm>
 	<div class="mt-4 text-secondary">Tax: @taxTotal</div>
@@ -51,7 +40,7 @@
 			<h3 class="my-auto">Total: @costTotal</h3>
 		</div>
 		<div class="col text-end">
-			@*<NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatId(model.Cost) + "/count/" + NumTickets)><button class="btn btn-success">Select and Review</button></NavLink>*@
+			<NavLink class="nav-link text-decoration-none text-reset py-0 px-0" href=@("purchase/" + flight.Id + "/seat/" + GetSeatName(model.Cost) + "/count/" + NumTickets)><button class="btn btn-success">Select and Review</button></NavLink>
 		</div>
 	</div>
 }
@@ -62,10 +51,10 @@ else
 
 @code {
 	[Parameter] 
-	public FlightDetail flight { get; set; }
+	public FlightDetailDTO flight { get; set; }
 	private SeatModel model { get; set; } = new();
-	[Parameter] public double SeatCost { get => model.Cost; set { model.Cost = value; CalculateTotals(); StateHasChanged(); } }
-	private double taxRate = 0.06;
+	[Parameter] public decimal SeatCost { get => model.Cost; set { model.Cost = value; CalculateTotals(); StateHasChanged(); } }
+	private decimal taxRate = 0.06m;
 	private int numTickets = 1;
 	[Parameter] public int NumTickets { get => numTickets; set { numTickets = value; CalculateTotals(); StateHasChanged(); } }
 	private string taxTotal;
@@ -73,38 +62,35 @@ else
 
 	protected async override Task OnInitializedAsync()
 	{
-		//model.Cost = flight.Seats.ElementAt(2).;
-		model.Cost = 50;
+		model.Cost = flight.SeatClasses.Find(s => s.Name == "Couch Class").Cost;
 		await CalculateTotals();
 	}
 
 	private class SeatModel
 	{
-		public double Cost { get; set; }
+		public decimal Cost { get; set; }
 	}
 
-	private string GetSeatId(double cost)
+	private string GetSeatName(decimal cost)
 	{
-		return "couch";
-		//foreach (var seat in flight.Seats)
-		//{
-		//	if (seat.Cost == cost)
-		//	{
-		//		return seat.Id;
-		//	}
-		//}
-		//return 0;
+		foreach (var seat in flight.SeatClasses)
+		{
+			if (seat.Cost == cost)
+			{
+				return seat.Name;
+			}
+		}
+		return "";
 	}
 
-	private async Task<string> GetTotal(double rate)
+	private async Task<string> GetTotal(decimal rate)
 	{
-		//return await service.GetTotal(flight.FlightId, flight.SeatName, NumTickets, rate);
+		return await service.GetTotal(flight.Id, GetSeatName(model.Cost), NumTickets, rate);
 		throw new NotImplementedException();
 	}
 
 	public async Task CalculateTotals()
 	{
-		Console.WriteLine(model.Cost);
 		taxTotal = await GetTotal(taxRate);
 		costTotal = await GetTotal(taxRate + 1);
 		StateHasChanged();

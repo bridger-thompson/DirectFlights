@@ -1,4 +1,4 @@
-﻿@page "/purchase/{id:int}/seat/{seatClassId:int}/count/{num:int}"
+﻿@page "/purchase/{id:int}/seat/{seatClassName}/count/{num:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using DirectFlights.Shared
@@ -57,7 +57,7 @@
 	[Parameter]
 	public int Id { get; set; }
 	[Parameter]
-	public int SeatClassId { get; set; }
+	public string SeatClassName { get; set; }
 	[Parameter]
 	public int num { get; set; }
 	private string total;
@@ -69,12 +69,12 @@
 
 	private async Task GetTotal()
 	{
-		total = await service.GetTotal(Id, SeatClassId, num, 1.06);
+		total = await service.GetTotal(Id, SeatClassName, num, (decimal)1.06);
 		StateHasChanged();
 	}
 
 	private async void PurchaseTicket()
 	{
-		await service.AddTicketToDB(Id, SeatClassId);
+		await service.AddTicketToDB(Id, SeatClassName);
 	}
 }

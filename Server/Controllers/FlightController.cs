@@ -65,17 +65,8 @@ namespace DirectFlights.Server.Controllers
         }
 
         [HttpGet("{departAirport}/{arriveAirport}/{departDate}")]
-        public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, string departDate)
+        public async Task<IEnumerable<FlightDetailDTO>> GetFlights(string departAirport, string arriveAirport, string departDate)
         {
-            //var ourFlights = new List<FlightDetail>();
-            //foreach (var flight in flights)
-            //{
-            //    if (flight.DepartAirport == departAirport && flight.ArriveAirport == arriveAirport /*&& flight.DepartTime.DayOfYear == departDate.DayOfYear*/)
-            //    {
-            //        ourFlights.Add(flight);
-            //    }
-            //}
-            //logger.LogInformation(ourFlights.ToString());
             var flights = await app.GetFlights(departAirport, arriveAirport, departDate);
             return flights;
         }
@@ -88,16 +79,9 @@ namespace DirectFlights.Server.Controllers
         }
 
         [HttpGet("{flightDetailId}")]
-        public async Task<FlightDetail> GetFlight(int flightDetailId)
+        public async Task<FlightDetailDTO> GetFlight(int flightDetailId)
         {
-            //foreach (var flight in flights)
-            //{
-            //    if (flight.Id == flightDetailId)
-            //    {
-            //        return flight;
-            //    }
-            //}
-            throw new Exception("Flight not found");
+            return await app.GetFlight(flightDetailId);
         }
     }
 }

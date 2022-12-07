@@ -15,11 +15,11 @@ namespace DirectFlights.Client.Services
             this.logger = logger;
         }
 
-        public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, DateTime departDate)
+        public async Task<IEnumerable<FlightDetailDTO>> GetFlights(string departAirport, string arriveAirport, DateTime departDate)
         {
             try
             {
-                return await client.GetFromJsonAsync<IEnumerable<FlightDetail>>($"api/Flight/{departAirport}/{arriveAirport}/{departDate.ToLongDateString()}");
+                return await client.GetFromJsonAsync<IEnumerable<FlightDetailDTO>>($"api/Flight/{departAirport}/{arriveAirport}/{departDate.ToLongDateString()}");
             }
             catch (AccessTokenNotAvailableException exception)
             {
@@ -41,20 +41,20 @@ namespace DirectFlights.Client.Services
             return null; 
         }
 
-        public async Task<string> GetTotal(int flightDetailId, int seatId, int numTickets, double rate)
+        public async Task<string> GetTotal(int flightDetailId, string seatName, int numTickets, decimal rate)
         {
-            //var flight = await client.GetFromJsonAsync<FlightDetail>($"api/Flight/{flightDetailId}");
-            //foreach (var seat in flight.Seats)
-            //{
-            //    if (seat.Id == seatId)
-            //    {
-            //        return (seat.Cost * rate * numTickets).ToString("C2");
-            //    }
-            //}
+            var flight = await client.GetFromJsonAsync<FlightDetailDTO>($"api/Flight/{flightDetailId}");
+            foreach (var seat in flight.SeatClasses)
+            {
+                if (seat.Name == seatName)
+                {
+                    return (seat.Cost * rate * numTickets).ToString("C2");
+                }
+            }
             throw new Exception("Unable to get total cost");
         }
 
-        public async Task AddTicketToDB(int flightDetailId, int seatId)
+        public async Task AddTicketToDB(int flightDetailId, string seatName)
         {
             logger.LogInformation("Registered Ticket");
             logger.LogInformation("Email (not) sent");
