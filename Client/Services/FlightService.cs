@@ -59,5 +59,10 @@ namespace DirectFlights.Client.Services
             logger.LogInformation("Registered Ticket");
             logger.LogInformation("Email (not) sent");
         }
+
+        public async Task SendEmail(string toAddress)
+        {
+            await client.PostAsync($"/api/Mail/{toAddress}", null);
+        }
     }
 }

@@ -36,13 +36,25 @@ namespace DirectFlights.Server.Repository
 
         public async Task<Seat> GetSeat(int seatId)
         {
-            var flight_seat = await context.FlightSeatClasses.FirstOrDefaultAsync(f => f.SeatId == seatId);
-            var seat_class = await context.SeatClasses.FirstOrDefaultAsync(s => s.Id == seatId);
-            Seat seat = new Seat()
+            var flight_seat = await context.FlightSeatClasses.Where(f => f.Id == seatId).FirstOrDefaultAsync();
+            var seat_class = await context.SeatClasses.Where(s => s.Id == flight_seat.SeatId).FirstOrDefaultAsync();
+            Seat seat = new();
+            if (flight_seat == null)
             {
-                Name = seat_class.Name,
-                Cost = flight_seat.SuggestedCost
-            };
+                logger.LogError("Flight Seat Class is null. Could not get seat: " + seatId);
+            }
+            else if (seat_class == null)
+            {
+                logger.LogError("Seat Class is null. Could not get seat: " + seatId);
+            }
+            else
+            {
+                seat = new Seat()
+                {
+                    Name = seat_class.Name,
+                    Cost = flight_seat.SuggestedCost
+                };
+            }
             return seat;
         }
     }
