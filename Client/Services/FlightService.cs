@@ -62,7 +62,15 @@ namespace DirectFlights.Client.Services
 
         public async Task SendEmail(string toAddress)
         {
+            toAddress = toAddress.Replace("[\"", "");
+            toAddress = toAddress.Replace("\"]", "");
             await client.PostAsync($"/api/Mail/{toAddress}", null);
+        }
+
+        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, DateTime departDate)
+        {
+            var totals = await client.GetFromJsonAsync<IEnumerable<FlightTotal>>($"api/Flight/total/{flightId}/{departDate.ToUniversalTime().ToLongDateString()}");
+            return totals;
         }
     }
 }

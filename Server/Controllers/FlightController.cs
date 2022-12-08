@@ -83,5 +83,13 @@ namespace DirectFlights.Server.Controllers
         {
             return await app.GetFlight(flightDetailId);
         }
+
+        [HttpGet("total/{flightId}/{departDate}")]
+        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, string departDate)
+        {
+            var date = DateTime.Parse(departDate);
+            date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+            return await app.GetFlightTotal(flightId, date);
+        }
     }
 }

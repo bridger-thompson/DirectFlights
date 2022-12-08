@@ -10,17 +10,20 @@ namespace DirectFlights.Server.Controllers
     public class MailController : ControllerBase
     {
         private readonly IConfiguration config;
+        private readonly ILogger<MailController> logger;
         private readonly MailjetClient mailClient;
 
-        public MailController(IConfiguration config)
+        public MailController(IConfiguration config, ILogger<MailController> logger)
         {
             this.mailClient = new(config["MJ_APIKEY_PUBLIC"], config["MJ_APIKEY_PRIVATE"]);
             this.config = config;
+            this.logger = logger;
         }
 
-        [HttpPost("{email}")]
+        [HttpPost("{toAddress}")]
         public async Task SendEmail(string toAddress)
         {
+            logger.LogInformation(toAddress);
             var email = new TransactionalEmailBuilder()
                 .WithFrom(new SendContact("bridger.thompson@students.snow.edu"))
                 .WithSubject("Flight Confirmation")
@@ -32,6 +35,7 @@ namespace DirectFlights.Server.Controllers
                 .WithTo(new SendContact(toAddress))
                 .Build();
             var response = await mailClient.SendTransactionalEmailAsync(email);
+            logger.LogInformation("Email Sent " + response.Messages);
         }
     }
 }

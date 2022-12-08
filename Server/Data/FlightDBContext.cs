@@ -17,6 +17,13 @@ namespace DirectFlights.Server.Data
         {
         }
 
+        public IQueryable<FlightTotal> GetFlightTotals(int flightId, DateTime departDate)
+        {
+            var date = DateTime.SpecifyKind(departDate, DateTimeKind.Utc);
+            return Set<FlightTotal>()
+                .FromSqlInterpolated($"select * from flight_total_with_id({flightId}, {date:yy-MM-dd hh:mm:ss})");
+        }
+
         public virtual DbSet<Airline> Airlines { get; set; } = null!;
         public virtual DbSet<Airport> Airports { get; set; } = null!;
         public virtual DbSet<AvailablePlane> AvailablePlanes { get; set; } = null!;
