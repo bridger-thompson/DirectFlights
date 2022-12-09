@@ -17,11 +17,11 @@ namespace DirectFlights.Server.Data
         {
         }
 
-        public IQueryable<FlightTotal> GetFlightTotals(int flightId, DateTime departDate)
+        public IQueryable<FlightTotal> GetFlightTotals(int upperLimit, DateTime departDate)
         {
             return Set<FlightTotal>()
-                .FromSqlInterpolated($"select * from zack_bridger.flight_total_with_id({flightId})")
-                .Where(t => t.DepartureDate == departDate);
+                .FromSqlInterpolated($"select * from zack_bridger.flight_total_with_id({upperLimit})")
+                .Where(t => t.DepartureDate.Date == departDate.Date);
         }
 
         public virtual DbSet<Airline> Airlines { get; set; } = null!;

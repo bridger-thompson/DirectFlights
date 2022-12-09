@@ -10,14 +10,9 @@
 <h3>Admin</h3>
 <TabControl>
     <TabPage Text="Flight Profits">
-        <h1 class="border border-secondary rounded shadow-sm" style="min-height: 37ex">The first tab</h1>
-        @if (totals != null)
-        {
-            @foreach (var total in totals)
-            {
-                <div>@total.Profit</div>
-            }
-        }
+        <div class="border border-secondary rounded shadow-sm" style="min-height: 37ex">
+            <FlightTotalPage />
+        </div>
     </TabPage>
     <TabPage Text="Airline Profits">
         <h1 class="border border-secondary rounded shadow-sm" style="min-height: 37ex">The second tab</h1>
@@ -28,12 +23,5 @@
 </TabControl>
 
 @code {
-    private IEnumerable<FlightTotal> totals { get; set; }
-    private int flightId { get; set; } = 8;
-    private DateTime departDate { get; set; } = DateTime.Parse("2022-8-28 00:00:00");
-    protected async override Task OnInitializedAsync()
-    {
-        Console.WriteLine(departDate);
-        totals = await service.GetFlightTotal(flightId, departDate);
-    }
+    
 }

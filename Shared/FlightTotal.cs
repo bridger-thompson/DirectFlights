@@ -7,8 +7,8 @@ namespace DirectFlights.Shared
     {
         public int FlightNumber { get; set; }
         public DateTime DepartureDate { get; set; }
-        public decimal Total { get; set; }
-        public decimal Refund { get; set; }
-        public decimal Profit { get; set; }
+        public decimal? Total { get; set; }
+        public decimal? Refund { get; set; }
+        public decimal? Profit { get; set; }
     }
 }

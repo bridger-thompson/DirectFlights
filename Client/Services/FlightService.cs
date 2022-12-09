@@ -67,9 +67,9 @@ namespace DirectFlights.Client.Services
             await client.PostAsync($"/api/Mail/{toAddress}", null);
         }
 
-        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, DateTime departDate)
+        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate)
         {
-            var totals = await client.GetFromJsonAsync<IEnumerable<FlightTotal>>($"api/Flight/total/{flightId}/{departDate.Ticks}");
+            var totals = await client.GetFromJsonAsync<IEnumerable<FlightTotal>>($"api/Flight/total/{upperLimit}/{departDate.Ticks}");
             return totals;
         }
     }

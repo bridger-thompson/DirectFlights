@@ -58,9 +58,9 @@ namespace DirectFlights.Server.Repository
             return seat;
         }
 
-        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, DateTime departDate)
+        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate)
         {
-            var table = await context.GetFlightTotals(flightId, departDate).ToListAsync();
+            var table = await context.GetFlightTotals(upperLimit, departDate).ToListAsync();
             return table;
         }
     }

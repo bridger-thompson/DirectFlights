@@ -41,11 +41,11 @@ namespace DirectFlights.Server.Controllers
             return await app.GetFlight(flightDetailId);
         }
 
-        [HttpGet("total/{flightId}/{departDate}")]
-        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, long departDate)
+        [HttpGet("total/{upperLimit}/{departDate}")]
+        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, long departDate)
         {
             var date = new DateTime(departDate, DateTimeKind.Utc);
-            return await app.GetFlightTotal(flightId, date);
+            return await app.GetFlightTotal(upperLimit, date);
         }
     }
 }
