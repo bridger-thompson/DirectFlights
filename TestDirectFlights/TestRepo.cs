@@ -10,6 +10,16 @@ namespace TestDirectFlights
 {
     public class TestRepo : IDataRepo
     {
+        public Task CreateFlightReservation(FlightReservation reservation)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Passenger> CreatePassenger(Passenger passenger)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IEnumerable<string>> GetAirports()
         {
             throw new NotImplementedException();
@@ -142,7 +152,17 @@ namespace TestDirectFlights
             return flights;
         }
 
+        public Task<FlightSchedule> GetFlightSchedule(int scheduleId)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, DateTime departDate)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Passenger> GetPassenger(string name)
         {
             throw new NotImplementedException();
         }
@@ -172,6 +192,16 @@ namespace TestDirectFlights
                 return seats[seatId-1];
             }
             else return null;
+        }
+
+        public Task<FlightSeatClass> GetSeatClass(int flightDetailId, int seatId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> GetSeatId(string seatName)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -10,9 +10,8 @@ namespace DirectFlights.Server.Data
         private readonly IDataRepo repo;
         private ILogger<FlightApplication> logger;
 
-        public FlightApplication(IDataRepo repo, ILogger<FlightApplication> logger)
+        public FlightApplication(IDataRepo repo)
         {
-            this.logger = logger;
             this.repo = repo;
         }
 
