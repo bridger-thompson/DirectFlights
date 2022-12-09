@@ -46,7 +46,7 @@ namespace DirectFlights.Server.Controllers
         {
             try
             {
-                Passenger user = new() { Name = passenger };
+                Passenger user = new() { Id = null, Name = passenger };
 
                 await app.CreateReservation(flightDetailId, seatName, user);
             }

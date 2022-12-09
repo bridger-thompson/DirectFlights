@@ -10,9 +10,10 @@ namespace DirectFlights.Server.Repository
         public Task<Seat> GetSeat(int seatId);
         public Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate);
         public Task<int> GetSeatId(string seatName);
-        public Task<Passenger> GetPassenger(int passengerId);
-        public Task CreatePassenger(Passenger passenger);
+        public Task<Passenger> GetPassenger(string name);
+        public Task<Passenger> CreatePassenger(Passenger passenger);
         public Task CreateFlightReservation(FlightReservation reservation);
-        public Task<int> GetSeatClassId(int flightDetailId, int seatId);
+        public Task<FlightSeatClass> GetSeatClass(int flightDetailId, int seatId);
+        public Task<FlightSchedule> GetFlightSchedule(int scheduleId);
     }
 }

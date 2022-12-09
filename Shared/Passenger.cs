@@ -10,7 +10,7 @@ namespace DirectFlights.Shared
             FlightReservations = new HashSet<FlightReservation>();
         }
 
-        public int Id { get; set; }
+        public int? Id { get; set; }
         public string Name { get; set; } = null!;
 
         public virtual ICollection<FlightReservation> FlightReservations { get; set; }
