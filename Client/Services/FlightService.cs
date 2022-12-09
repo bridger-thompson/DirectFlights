@@ -54,10 +54,20 @@ namespace DirectFlights.Client.Services
             throw new Exception("Unable to get total cost");
         }
 
-        public async Task AddTicketToDB(int flightDetailId, string seatName)
+        public async Task AddTicketToDB(int flightDetailId, string seatName, string passenger)
         {
-            logger.LogInformation("Registered Ticket");
-            logger.LogInformation("Email (not) sent");
+
+            try
+            {
+                await client.PostAsync($"/api/Flight/{flightDetailId}/{seatName}/{passenger}", null);
+                logger.LogInformation("Registered Ticket");
+            }
+            catch
+            {
+                throw;
+            }
+
+            
         }
 
         public async Task SendEmail(string toAddress)

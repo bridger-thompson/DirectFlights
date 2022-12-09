@@ -57,5 +57,72 @@ namespace DirectFlights.Server.Repository
             }
             return seat;
         }
+
+        public async Task<int> GetSeatId(string seatName)
+        {
+            var seat = await context.SeatClasses.Where(s => s.Name == seatName).FirstOrDefaultAsync();
+
+            if (seat == null)
+            {
+                logger.LogError("Seat Class is null. Could not get seat: " + seatName);
+            }
+            return seat.Id;
+        }
+
+        public async Task<Passenger> GetPassenger(int passengerId)
+        {
+            var existing = await context.Passengers.Where(f => f.Id == passengerId).FirstOrDefaultAsync();
+            Passenger passenger = new();
+            if (existing == null)
+            {
+                logger.LogError($"Passenger doesn't exist with id {passengerId}");
+            } 
+            else
+            {
+                passenger = existing;
+            }
+            return passenger;
+        }
+
+        public async Task CreatePassenger(Passenger passenger)
+        {
+            var existing = await context.Passengers.Where(f => f.Name == passenger.Name).FirstOrDefaultAsync();
+            if(existing != null)
+            {
+                logger.LogError($"Passenger {passenger.Name} already exists");
+            } 
+            else
+            {
+                await context.Passengers.AddAsync(passenger);
+            }
+        }
+
+        public async Task CreateFlightReservation(FlightReservation reservation)
+        {
+            if(reservation != null)
+            {
+                try
+                {
+                    await context.FlightReservations.AddAsync(reservation);
+                    await context.SaveChangesAsync();
+                } 
+                catch (Exception e)
+                {
+                    logger.LogError($"Flight reservation creation failed because of {e}");
+                    throw;
+                }
+            }
+        }
+
+        public async Task<int> GetSeatClassId(int flightDetailId, int seatId)
+        {
+            var seatClassId = await context.FlightSeatClasses.Where(s => s.SeatId == seatId && s.FlightId == flightDetailId).FirstOrDefaultAsync();
+
+            if (seatClassId == null)
+            {
+                logger.LogError("Flight Seat Class is null. Could not get seat: " + seatId + " With flight id: " + flightDetailId);
+            }
+            return seatClassId.Id;
+        }
     }
 }

@@ -86,5 +86,36 @@ namespace DirectFlights.Server.Data
             return flightDetail;
         }
 
+        public async Task CreateReservation(int flightDetailId, string seatName, Passenger passenger)
+        {
+            if(await repo.GetPassenger(passenger.Id) == null)
+            {
+                await repo.CreatePassenger(passenger);
+            }
+
+            if(await repo.GetAllFlightsOfId(flightDetailId) != null)
+            {
+                int seatId = await repo.GetSeatId(seatName);
+                Seat seat = await repo.GetSeat(seatId);
+
+                FlightReservation reservation = new()
+                {
+                    PassengerId = passenger.Id,
+                    FlightScheduleId = flightDetailId,
+                    ClassId = await repo.GetSeatClassId(flightDetailId, seatId),
+                    ReservationDate = DateOnly.FromDateTime(DateTime.Now),
+                    SeatCost = seat.Cost
+                };
+                try
+                {
+                    await repo.CreateFlightReservation(reservation);
+                }
+                catch
+                {
+                    throw;
+                }
+            }
+        }
+
     }
 }

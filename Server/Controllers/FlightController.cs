@@ -83,5 +83,20 @@ namespace DirectFlights.Server.Controllers
         {
             return await app.GetFlight(flightDetailId);
         }
+
+        [HttpPost("{flightDetailId}/{seatName}/{passenger}")]
+        public async Task CreateReservation(int flightDetailId, string seatName, string passenger)
+        {
+            try
+            {
+                Passenger user = new() { Name = passenger };
+
+                await app.CreateReservation(flightDetailId, seatName, user);
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 }
