@@ -1,8 +1,8 @@
 ﻿@page "/confirm"
-@using Microsoft.AspNetCore.Identity
 @using DirectFlights.Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject FlightService service
-@inject UserManager<IdentityUser> userManager
+@inject AuthenticationStateProvider asp
 
 <div class="container text-center">
 	<h3 class="">Payment Confirmed!</h3>
@@ -12,17 +12,12 @@
 
 
 @code {
-	[CascadingParameter]
-	private Task<AuthenticationState> authenticationStateTask { get; set; }
-
 	private string userEmail { get; set; }
 	protected override async Task OnInitializedAsync()
 	{
-		var user = (await authenticationStateTask).User;
-		if (user.Identity.IsAuthenticated)
-		{
-			userEmail = (await userManager.GetUserAsync(user)).Email;
-			await service.SendEmail(userEmail);
-		}
+		var authState = await asp.GetAuthenticationStateAsync();
+		var user = authState.User;
+		userEmail = user.FindFirst("emails").Value;
+		await service.SendEmail(userEmail);
 	}
 }

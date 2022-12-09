@@ -117,5 +117,10 @@ namespace DirectFlights.Server.Data
             }
         }
 
+        public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate)
+        {
+            return await repo.GetFlightTotal(upperLimit, departDate);
+        }
+
     }
 }

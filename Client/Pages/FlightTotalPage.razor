@@ -1,0 +1,72 @@
+﻿@using DirectFlights.Client.Services
+@using DirectFlights.Shared
+@inject FlightService service
+
+<EditForm Model=model OnValidSubmit=GetTotals>
+    <div class="row mt-2">
+        <div class="col-2 text-end my-auto">
+            <label>Number:</label>
+        </div>
+        <div class="col-2">
+            <input type="number" class="form-control" @bind="model.NumIds" />
+        </div>
+        <div class="col-2 text-end my-auto">
+            <label>Date:</label>
+        </div>
+        <div class="col-3">
+            <input type="date" class="date form-control" @bind="model.DepartDate" />
+        </div>
+		<div class="col-2 text-end">
+			<button class="btn btn-primary" type="submit">Search</button>
+		</div>
+    </div>
+    <DataAnnotationsValidator />
+	<ValidationSummary />
+</EditForm>
+
+@if (totals != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Flight Number</th>
+                <th>Payment</th>
+                <th>Refund</th>
+                <th>Profit</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var total in totals)
+            {
+                <tr>
+                    <td>@total.FlightNumber</td>
+                    <td>$@total.Total</td>
+                    <td>-$@(@total.Refund*-1)</td>
+                    <td>$@total.Profit</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div>Loading...</div>
+}
+
+@code {
+    private IEnumerable<FlightTotal> totals { get; set; }
+    private FlightTotalModel model = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        Console.WriteLine(model.DepartDate);
+        totals = await service.GetFlightTotal(model.NumIds, model.DepartDate);
+    }
+
+    private async Task GetTotals()
+    {
+        totals = null;
+        totals = await service.GetFlightTotal(model.NumIds, model.DepartDate);
+        StateHasChanged();
+    }
+}

@@ -142,6 +142,11 @@ namespace TestDirectFlights
             return flights;
         }
 
+        public Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, DateTime departDate)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<Seat> GetSeat(int seatId)
         {
             List<Seat> seats = new()
