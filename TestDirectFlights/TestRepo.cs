@@ -19,8 +19,6 @@ namespace TestDirectFlights
         {
             throw new NotImplementedException();
         }
-
-        public Task<IEnumerable<string>> GetAirports()
 		public Task<IEnumerable<Airline>> GetAirlines()
 		{
 			throw new NotImplementedException();
