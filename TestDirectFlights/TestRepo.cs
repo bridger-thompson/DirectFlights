@@ -181,7 +181,6 @@ namespace TestDirectFlights
             throw new NotImplementedException();
         }
 
-        public async Task<Seat> GetSeat(int seatId)
 		public Task<IEnumerable<PlaneType>> GetPlaneTypes()
 		{
 			throw new NotImplementedException();

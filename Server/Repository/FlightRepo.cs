@@ -146,5 +146,24 @@ namespace DirectFlights.Server.Repository
             var table = await context.GetFlightTotals(upperLimit, departDate).ToListAsync();
             return table;
         }
+
+        public async Task<FlightSchedule> GetFlightSchedule(int scheduleId)
+        {
+            var schedule = await context.FlightSchedules.Where(s => s.Id == scheduleId).FirstOrDefaultAsync();
+            return schedule;
+        }
+
+        public async Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            var totals = await context.AirlineTotals.ToListAsync();
+            return totals;
+        }
+
+        public async Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
+        {
+            var routes = await context.FlightScheduleTemplates
+                .ToListAsync();
+            return routes;
+        }
     }
 }
