@@ -1,0 +1,49 @@
+﻿@using DirectFlights.Client.Services
+@inject FlightService service
+
+@if (totals != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Airline Number</th>
+                <th>Airline Name</th>
+                <th>Payment</th>
+                <th>Refund</th>
+                <th>Profit</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var total in totals)
+            {
+                <tr>
+                    <td>@total.Id</td>
+                    <td>@total.Name</td>
+                    @if (total.Total != null)
+                    {
+                        <td>$@(@total.Total)</td>
+                    }
+                    else {<td>$0</td>}
+                    @if (total.Refund != null)
+                    {
+                        <td>-$@(@total.Refund*-1)</td>
+                    }
+                    else {<td>$0</td>}
+                    <td>$@total.Profit</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div>Loading...</div>
+}
+
+@code {
+	private IEnumerable<AirlineTotal> totals { get; set; }
+	protected async override Task OnInitializedAsync()
+	{
+		totals = await service.GetAirlineTotal();
+	}
+}

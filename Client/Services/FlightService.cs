@@ -28,12 +28,32 @@ namespace DirectFlights.Client.Services
             }
         }
 
-        public async Task<IEnumerable<string>> GetAirports()
+        public async Task<IEnumerable<Airport>> GetAirports()
         {
 
-            var airports = await client.GetFromJsonAsync<IEnumerable<string>>("api/Flight/airports");
+            var airports = await client.GetFromJsonAsync<IEnumerable<Airport>>("api/Flight/airports");
             return airports;
         }
+
+        public async Task<IEnumerable<Airline>> GetAirlines()
+        {
+
+            var airlines = await client.GetFromJsonAsync<IEnumerable<Airline>>("api/Flight/airlines");
+            return airlines;
+        }
+
+        public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
+        {
+
+            var planeTypes = await client.GetFromJsonAsync<IEnumerable<PlaneType>>("api/Flight/planeTypes");
+            return planeTypes;
+        }
+
+        public async Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
+		{
+            var routes = await client.GetFromJsonAsync<IEnumerable<FlightScheduleTemplate>>("api/Flight/routes");
+            return routes;
+		}
 
         public async Task<string> RegisterPassengerFlight()
         {
@@ -70,6 +90,12 @@ namespace DirectFlights.Client.Services
         public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate)
         {
             var totals = await client.GetFromJsonAsync<IEnumerable<FlightTotal>>($"api/Flight/total/{upperLimit}/{departDate.Ticks}");
+            return totals;
+        }
+
+        public async Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            var totals = await client.GetFromJsonAsync<IEnumerable<AirlineTotal>>($"api/Flight/total/airlines");
             return totals;
         }
     }

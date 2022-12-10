@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json.Converters;
+using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace DirectFlights.Shared
 {
@@ -11,7 +13,9 @@ namespace DirectFlights.Shared
         public int AirlineId { get; set; }
         public int DepartureAirportId { get; set; }
         public int ArrivalAirportId { get; set; }
+        [JsonConverter(typeof(TimeOnlyConverter))]
         public TimeOnly TakeOffTime { get; set; }
+        [JsonConverter(typeof(TimeOnlyConverter))]
         public TimeOnly LandingTime { get; set; }
         public int PlaneTypeId { get; set; }
         public DateTime DateCreated { get; set; }

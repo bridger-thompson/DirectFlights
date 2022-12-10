@@ -12,10 +12,25 @@ namespace DirectFlights.Server.Data
             this.repo = repo;
         }
 
-        public async Task<IEnumerable<string>> GetAirports()
+        public async Task<IEnumerable<Airport>> GetAirports()
         {
             return await repo.GetAirports();
         }
+
+        public async Task<IEnumerable<Airline>> GetAirlines()
+        {
+            return await repo.GetAirlines();
+        }
+
+        public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
+        {
+            return await repo.GetPlaneTypes();
+        }
+
+        public async Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
+		{
+            return await repo.GetFlightScheduleTemplates();
+		}
 
         public async Task<IEnumerable<FlightDetailDTO>> GetFlights(string departAirport, string arriveAirport, string departDate)
         {
@@ -89,6 +104,11 @@ namespace DirectFlights.Server.Data
         public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate)
         {
             return await repo.GetFlightTotal(upperLimit, departDate);
+        }
+
+        public async Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            return await repo.GetAirlineTotal();
         }
 
     }

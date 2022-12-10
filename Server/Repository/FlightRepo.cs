@@ -14,10 +14,22 @@ namespace DirectFlights.Server.Repository
             this.context = context;
             this.logger = logger;
         }
-        public async Task<IEnumerable<string>> GetAirports()
+        public async Task<IEnumerable<Airport>> GetAirports()
         {
-            var airports = await context.Airports.Select(airport => airport.Name).ToListAsync();
+            var airports = await context.Airports.ToListAsync();
             return airports;
+        }
+
+        public async Task<IEnumerable<Airline>> GetAirlines()
+        {
+            var airlines = await context.Airlines.ToListAsync();
+            return airlines;
+        }
+
+        public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
+        {
+            var types = await context.PlaneTypes.ToListAsync();
+            return types;
         }
 
         public async Task<IEnumerable<FlightDetail>> GetAllFlightsOfId(int flightDetailId)
@@ -62,6 +74,19 @@ namespace DirectFlights.Server.Repository
         {
             var table = await context.GetFlightTotals(upperLimit, departDate).ToListAsync();
             return table;
+        }
+
+        public async Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            var totals = await context.AirlineTotals.ToListAsync();
+            return totals;
+        }
+
+        public async Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
+        {
+            var routes = await context.FlightScheduleTemplates
+                .ToListAsync();
+            return routes;
         }
     }
 }

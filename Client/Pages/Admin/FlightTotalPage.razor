@@ -40,8 +40,17 @@
             {
                 <tr>
                     <td>@total.FlightNumber</td>
-                    <td>$@total.Total</td>
-                    <td>-$@(@total.Refund*-1)</td>
+
+                    @if (total.Total != null)
+                    {
+                        <td>$@(@total.Total)</td>
+                    }
+                    else {<td>$0</td>}
+                    @if (total.Refund != null)
+                    {
+                        <td>-$@(@total.Refund*-1)</td>
+                    }
+                    else {<td>$0</td>}
                     <td>$@total.Profit</td>
                 </tr>
             }

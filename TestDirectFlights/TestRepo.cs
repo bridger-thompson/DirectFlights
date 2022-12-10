@@ -10,7 +10,17 @@ namespace TestDirectFlights
 {
     public class TestRepo : IDataRepo
     {
-        public Task<IEnumerable<string>> GetAirports()
+		public Task<IEnumerable<Airline>> GetAirlines()
+		{
+			throw new NotImplementedException();
+		}
+
+		public Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IEnumerable<Airport>> GetAirports()
         {
             throw new NotImplementedException();
         }
@@ -142,12 +152,22 @@ namespace TestDirectFlights
             return flights;
         }
 
+        public Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IEnumerable<FlightTotal>> GetFlightTotal(int flightId, DateTime departDate)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<Seat> GetSeat(int seatId)
+		public Task<IEnumerable<PlaneType>> GetPlaneTypes()
+		{
+			throw new NotImplementedException();
+		}
+
+		public async Task<Seat> GetSeat(int seatId)
         {
             List<Seat> seats = new()
             {

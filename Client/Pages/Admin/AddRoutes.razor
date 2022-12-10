@@ -1,0 +1,190 @@
+﻿@using DirectFlights.Client.Services
+@using DirectFlights.Client.Models
+@inject FlightService service
+
+<div class="mx-3">
+	<h4>Create New Route:</h4>
+	<EditForm Model=model OnValidSubmit=AddRoute>
+		<div class="row mb-2">
+			<div class="col">
+				<label class="me-2 my-auto">Airline:</label>
+				<div class="input-group">
+					@*<span class="input-group-text"><i class="oi oi-location"></i></span>*@
+					<InputSelect class="form-control" @bind-Value="model.AirlineId" >
+						<option selected hidden>Airline</option>
+						@if (airlines == null)
+						{
+							<option>Loading...</option>
+						}
+						else
+						{
+							@foreach (var airline in airlines)
+							{
+								<option value=@airline.Id>@airline.Name</option>
+							}
+						}
+					</InputSelect>
+				</div>
+			</div>
+			<div class="col">
+				<label class="me-2 my-auto">Departure Airport:</label>
+				<div class="input-group">
+					<span class="input-group-text"><i class="oi oi-location"></i></span>
+					<InputSelect class="form-control" @bind-Value="model.DepartureAirportId" >
+						<option selected hidden>Depart Airport</option>
+						@if (airports == null)
+						{
+							<option>Loading...</option>
+						}
+						else
+						{
+							@foreach (var airport in airports)
+							{
+								<option value=@airport.Id>@airport.Name</option>
+							}
+						}
+					</InputSelect>
+				</div>
+			</div>
+			<div class="col">
+				<label class="me-2 my-auto">Arrival Airport:</label>
+				<div class="input-group">
+					<span class="input-group-text"><i class="oi oi-location"></i></span>
+					<InputSelect class="form-control" @bind-Value="model.ArrivalAirportId" >
+						<option selected hidden>Arrival Airport</option>
+						@if (airports == null)
+						{
+							<option>Loading...</option>
+						}
+						else
+						{
+							@foreach (var airport in airports)
+							{
+								<option value=@airport.Id>@airport.Name</option>
+							}
+						}
+					</InputSelect>
+				</div>
+			</div>
+			<div class="col">
+				<label class="me-2 my-auto">Plane Type:</label>
+				<div class="input-group">
+					<span class="input-group-text"><i class="oi oi-location"></i></span>
+					<InputSelect class="form-control" @bind-Value="model.PlaneTypeId" >
+						<option selected hidden>Plane Type</option>
+						@if (types == null)
+						{
+							<option>Loading...</option>
+						}
+						else
+						{
+							@foreach (var type in types)
+							{
+								<option value=@type.Id>@type.Name</option>
+							}
+						}
+					</InputSelect>
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col">
+				<label class="form-label mb-0">Flight Number:</label>
+				<input type="number" class="form-control" @bind=model.FlightNumber />
+			</div>
+			<div class="col">
+				<label class="form-label mb-0">Segment Number:</label>
+				<input type="number" class="form-control" @bind=model.SegmentNumber />
+			</div>
+			<div class="col">
+				<label class="form-label mb-0">Take Off Time:</label>
+				<input type="time" step="3600000" class="form-control" @bind=model.TakeOffTime />
+			</div>
+			<div class="col">
+				<label class="form-label mb-0">Landing Time:</label>
+				<input type="time" step="3600000" class="form-control" @bind=model.LandingTime />
+			</div>
+		</div>
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<div class="row my-2">
+			<div class="col">
+				<button class="btn btn-primary" type="submit">Submit</button>
+			</div>
+		</div>
+	</EditForm>
+</div>
+@if (routes != null)
+{
+	<table class="table table-striped">
+		<thead>
+			<tr>
+				<th>Id</th>
+				<th>Flight Number</th>
+				<th>Segment Number</th>
+				<th>Airline Id</th>
+				<th>Departure Airport Id</th>
+				<th>Arrival Airport Id</th>
+				<th>Take Off Time</th>
+				<th>Landing Time</th>
+				<th>Plane Type Id</th>
+				<th>Date Created</th>
+				<th>Date Retired</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var route in routes)
+			{
+				<tr>
+					<td>@route.Id</td>
+					<td>@route.FlightNumber</td>
+					<td>@route.SegmentNumber</td>
+					<td>@route.AirlineId</td>
+					<td>@route.DepartureAirportId</td>
+					<td>@route.ArrivalAirportId</td>
+					<td>@route.TakeOffTime</td>
+					<td>@route.LandingTime</td>
+					<td>@route.PlaneTypeId</td>
+					<td>@route.DateCreated</td>
+					@if (route.DateRetired != null)
+					{
+						<td>@route.DateRetired</td>
+					}
+					else
+					{
+						<td>N/A</td>
+					}
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+else
+{
+	<div>Loading...</div>
+}
+
+
+@code {
+	private IEnumerable<Airline> airlines { get; set; }
+	private IEnumerable<Airport> airports { get; set; }
+	private IEnumerable<PlaneType> types { get; set; }
+	private IEnumerable<FlightScheduleTemplate> routes { get; set; }
+
+	private RouteModel model = new();
+
+	protected async override Task OnInitializedAsync()
+	{
+		airlines = await service.GetAirlines();
+		airports = await service.GetAirports();
+		types = await service.GetPlaneTypes();
+		routes = await service.GetFlightScheduleTemplates();
+		Console.Write(routes.ToString);
+		StateHasChanged();
+	}
+
+	private async Task AddRoute()
+	{
+		
+	}
+}

@@ -29,10 +29,24 @@ namespace DirectFlights.Server.Controllers
         }
 
         [HttpGet("airports")]
-        public async Task<IEnumerable<string>> GetAirports()
+        public async Task<IEnumerable<Airport>> GetAirports()
         {
             var airports = await app.GetAirports();
             return airports;
+        }
+
+        [HttpGet("airlines")]
+        public async Task<IEnumerable<Airline>> GetAirlines()
+        {
+            var airlines = await app.GetAirlines();
+            return airlines;
+        }
+
+        [HttpGet("planeTypes")]
+        public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
+        {
+            var planeType = await app.GetPlaneTypes();
+            return planeType;
         }
 
         [HttpGet("{flightDetailId}")]
@@ -47,5 +61,19 @@ namespace DirectFlights.Server.Controllers
             var date = new DateTime(departDate, DateTimeKind.Utc);
             return await app.GetFlightTotal(upperLimit, date);
         }
+
+        [HttpGet("total/airlines")]
+        public async Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            var totals = await app.GetAirlineTotal();
+            return totals;
+        }
+
+        [HttpGet("routes")]
+        public async Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
+		{
+            var routes = await app.GetFlightScheduleTemplates();
+            return routes;
+		}
     }
 }

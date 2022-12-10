@@ -25,6 +25,7 @@ namespace DirectFlights.Server.Data
         }
 
         public virtual DbSet<Airline> Airlines { get; set; } = null!;
+        public virtual DbSet<AirlineTotal> AirlineTotals { get; set; } = null!;
         public virtual DbSet<Airport> Airports { get; set; } = null!;
         public virtual DbSet<AvailablePlane> AvailablePlanes { get; set; } = null!;
         public virtual DbSet<FlightBooking> FlightBookings { get; set; } = null!;
@@ -364,6 +365,23 @@ namespace DirectFlights.Server.Data
                     .HasForeignKey(d => d.SeatId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("flight_seat_class_seat_id_fkey");
+            });
+
+            modelBuilder.Entity<AirlineTotal>(entity =>
+            {
+                entity.HasNoKey();
+
+                entity.ToView("airline_total", "zack_bridger");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Name).HasColumnName("name");
+
+                entity.Property(e => e.Profit).HasColumnName("profit");
+
+                entity.Property(e => e.Refund).HasColumnName("refund");
+
+                entity.Property(e => e.Total).HasColumnName("total");
             });
 
             modelBuilder.Entity<FlightTotal>(entity =>
