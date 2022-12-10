@@ -82,7 +82,9 @@
 		var username = user.FindFirst("name")?.Value;
 
 		if(username != null){
-			await service.AddTicketToDB(Id, SeatClassName, username);
+			for(int i = 0; i < num; i ++){
+				await service.AddTicketToDB(Id, SeatClassName, username);
+			}			
 		}
 		
 	}
