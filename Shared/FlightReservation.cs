@@ -11,7 +11,7 @@ namespace DirectFlights.Shared
             Payments = new HashSet<Payment>();
         }
 
-        public int Id { get; set; }
+        public int? Id { get; set; }
         public int PassengerId { get; set; }
         public int FlightScheduleId { get; set; }
         public int ClassId { get; set; }

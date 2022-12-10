@@ -1,11 +1,14 @@
 ﻿using DirectFlights.Server.Repository;
 using DirectFlights.Shared;
+using Microsoft.AspNetCore.Http.Features;
+using System.Runtime.Serialization.Formatters;
 
 namespace DirectFlights.Server.Data
 {
     public class FlightApplication
     {
         private readonly IDataRepo repo;
+        private ILogger<FlightApplication> logger;
 
         public FlightApplication(IDataRepo repo)
         {
@@ -99,6 +102,54 @@ namespace DirectFlights.Server.Data
                 }
             }
             return flightDetail;
+        }
+
+        public async Task CreateReservation(int flightDetailId, string seatName, Passenger passenger)
+        {
+            var passengerExist = await repo.GetPassenger(passenger.Name);
+            if (passengerExist.Name == null)
+            {
+                passenger = await repo.CreatePassenger(passenger);
+            }
+            else
+            {
+                passenger = passengerExist;
+            }
+
+
+            if(await repo.GetAllFlightsOfId(flightDetailId) != null)
+            {
+                int seatId = await repo.GetSeatId(seatName);
+                Seat seat = await repo.GetSeat(seatId);
+                FlightSeatClass flightSeatClass = await repo.GetSeatClass(flightDetailId, seatId);
+                FlightSchedule flightSchedule = await repo.GetFlightSchedule(flightDetailId);
+
+                if(passenger.Id != null) {
+                    FlightReservation reservation = new()
+                    {
+                        PassengerId = (int)passenger.Id,
+                        FlightScheduleId = flightSchedule.Id,
+                        ClassId = flightSeatClass.Id,
+                        ReservationDate = DateOnly.FromDateTime(DateTime.Now),
+                        SeatCost = seat.Cost,
+                        Class = flightSeatClass,
+                        FlightSchedule = flightSchedule,
+                        Passenger = passenger
+                    };
+                    try
+                    {
+                        await repo.CreateFlightReservation(reservation);
+                    }
+                    catch
+                    {
+                        throw;
+                    }
+                } 
+                else
+                {
+                    logger.LogError("Passenger Id is null");
+                }                
+            }
         }
 
         public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, DateTime departDate)

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace TestDirectFlights
 {

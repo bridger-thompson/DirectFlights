@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using DirectFlights.Client;
 using DirectFlights.Client.Services;
 using Blazored.Modal;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
