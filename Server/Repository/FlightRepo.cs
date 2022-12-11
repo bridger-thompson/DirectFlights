@@ -20,16 +20,34 @@ namespace DirectFlights.Server.Repository
             return airports;
         }
 
+        public async Task<Airport> GetAirportById(int id)
+        {
+            var airport = await context.Airports.Where(a => a.Id == id).FirstOrDefaultAsync();
+            return airport;
+        }
+
         public async Task<IEnumerable<Airline>> GetAirlines()
         {
             var airlines = await context.Airlines.ToListAsync();
             return airlines;
         }
 
+        public async Task<Airline> GetAirlineById(int id)
+        {
+            var airline = await context.Airlines.Where(a => a.Id == id).FirstOrDefaultAsync();
+            return airline;
+        }
+
         public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
         {
             var types = await context.PlaneTypes.ToListAsync();
             return types;
+        }
+
+        public async Task<PlaneType> GetPlaneTypeById(int id)
+        {
+            var plane = await context.PlaneTypes.Where(a => a.Id == id).FirstOrDefaultAsync();
+            return plane;
         }
 
         public async Task<IEnumerable<FlightDetail>> GetAllFlightsOfId(int flightDetailId)
@@ -164,6 +182,15 @@ namespace DirectFlights.Server.Repository
             var routes = await context.FlightScheduleTemplates
                 .ToListAsync();
             return routes;
+        }
+    
+        public async Task CreateFlightRoute(FlightScheduleTemplate template)
+        {
+            if(template != null)
+            {
+                await context.FlightScheduleTemplates.AddAsync(template);
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

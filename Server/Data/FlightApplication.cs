@@ -162,5 +162,32 @@ namespace DirectFlights.Server.Data
             return await repo.GetAirlineTotal();
         }
 
+        public async Task CreateNewRoute(int flightNum, int segmentNum, int airlineId, int departAirportId, int arrivalAirportId, TimeOnly takeOffTime, TimeOnly landingTime, int planeTypeId)
+        {
+            Airline airline = await repo.GetAirlineById(airlineId);
+            Airport departAirport = await repo.GetAirportById(departAirportId);
+            Airport arrivalAirport = await repo.GetAirportById(arrivalAirportId);
+            PlaneType planeType = await repo.GetPlaneTypeById(planeTypeId);
+
+            FlightScheduleTemplate template = new()
+            {
+                FlightNumber = flightNum,
+                SegmentNumber = segmentNum,
+                AirlineId = airline.Id,
+                DepartureAirportId = departAirport.Id,
+                ArrivalAirportId = arrivalAirport.Id,
+                TakeOffTime = takeOffTime,
+                LandingTime = landingTime,
+                PlaneTypeId = planeType.Id,
+                DateCreated = DateTime.Now,
+                Airline = airline,
+                ArrivalAirport = arrivalAirport,
+                DepartureAirport = departAirport,
+                PlaneType = planeType
+            };
+
+            await repo.CreateFlightRoute(template);
+        }
+
     }
 }

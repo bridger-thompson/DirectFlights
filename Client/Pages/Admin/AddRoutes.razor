@@ -98,11 +98,11 @@
 			</div>
 			<div class="col">
 				<label class="form-label mb-0">Take Off Time:</label>
-				<input type="time" step="3600000" class="form-control" @bind=model.TakeOffTime />
+				<input type="time" class="form-control" @bind=model.TakeOffTime />
 			</div>
 			<div class="col">
 				<label class="form-label mb-0">Landing Time:</label>
-				<input type="time" step="3600000" class="form-control" @bind=model.LandingTime />
+				<input type="time" class="form-control" @bind=model.LandingTime />
 			</div>
 		</div>
 		<DataAnnotationsValidator />
@@ -185,6 +185,17 @@ else
 
 	private async Task AddRoute()
 	{
-		
+		FlightScheduleTemplate schedule = new()
+		{
+			FlightNumber = model.FlightNumber,
+			SegmentNumber = model.SegmentNumber,
+			AirlineId = model.AirlineId,
+			DepartureAirportId = model.DepartureAirportId,
+			ArrivalAirportId = model.ArrivalAirportId,
+			TakeOffTime = model.TakeOffTime,
+			LandingTime = model.LandingTime,
+			PlaneTypeId = model.PlaneTypeId
+		};
+		await service.CreateNewFlightRoute(schedule);
 	}
 }

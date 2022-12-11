@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Web.Resource;
+using System.Collections.Specialized;
+using System.Numerics;
+using System.Web;
 
 namespace DirectFlights.Server.Controllers
 {
@@ -90,5 +93,25 @@ namespace DirectFlights.Server.Controllers
             var routes = await app.GetFlightScheduleTemplates();
             return routes;
 		}
+
+        [HttpPost("newroute/{schedule}")]
+        public async Task CreateNewFlightRoute(string schedule)
+        {
+            NameValueCollection values = HttpUtility.ParseQueryString(schedule);
+            var dictionary = values.AllKeys.ToDictionary(k => k, k => values[k]);
+            
+            int flightNumber = Int32.Parse(dictionary["FlightNumber"]);
+            int segmentNumber = Int32.Parse(dictionary["SegmentNumber"]);
+            int airlineId = Int32.Parse(dictionary["AirlineId"]);
+            int departureAirportId = Int32.Parse(dictionary["DepartureAirportId"]);
+            int arrivalAirportId = Int32.Parse(dictionary["ArrivalAirportId"]);
+            TimeOnly takeoffTime = TimeOnly.Parse(dictionary["TakeOffTime"]);
+            TimeOnly landingTime = TimeOnly.Parse(dictionary["LandingTime"]);
+            int planeTypeId = Int32.Parse(dictionary["PlaneTypeId"]);
+
+            await app.CreateNewRoute(flightNumber, segmentNumber, 
+                airlineId, departureAirportId, arrivalAirportId,
+                takeoffTime, landingTime, planeTypeId);
+        }
     }
 }

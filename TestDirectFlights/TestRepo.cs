@@ -15,16 +15,32 @@ namespace TestDirectFlights
             throw new NotImplementedException();
         }
 
+        public Task CreateFlightRoute(FlightScheduleTemplate template)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<Passenger> CreatePassenger(Passenger passenger)
         {
             throw new NotImplementedException();
         }
-		public Task<IEnumerable<Airline>> GetAirlines()
+
+        public Task<Airline> GetAirlineById(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IEnumerable<Airline>> GetAirlines()
 		{
 			throw new NotImplementedException();
 		}
 
 		public Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Airport> GetAirportById(int id)
         {
             throw new NotImplementedException();
         }
@@ -181,7 +197,12 @@ namespace TestDirectFlights
             throw new NotImplementedException();
         }
 
-		public Task<IEnumerable<PlaneType>> GetPlaneTypes()
+        public Task<PlaneType> GetPlaneTypeById(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IEnumerable<PlaneType>> GetPlaneTypes()
 		{
 			throw new NotImplementedException();
 		}

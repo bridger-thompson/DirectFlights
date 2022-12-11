@@ -1,6 +1,9 @@
 ﻿using DirectFlights.Shared;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+using Newtonsoft.Json;
 using System.Net.Http.Json;
+using System.Text;
+using System.Web;
 
 namespace DirectFlights.Client.Services
 {
@@ -107,6 +110,21 @@ namespace DirectFlights.Client.Services
         {
             var totals = await client.GetFromJsonAsync<IEnumerable<AirlineTotal>>($"api/Flight/total/airlines");
             return totals;
+        }
+
+        public async Task CreateNewFlightRoute(FlightScheduleTemplate schedule)
+        {
+            var queryString = HttpUtility.ParseQueryString(string.Empty);
+            queryString["FlightNumber"] = schedule.FlightNumber.ToString();
+            queryString["SegmentNumber"] = schedule.SegmentNumber.ToString();
+            queryString["AirlineId"] = schedule.AirlineId.ToString();
+            queryString["DepartureAirportId"] = schedule.DepartureAirportId.ToString();
+            queryString["ArrivalAirportId"] = schedule.ArrivalAirportId.ToString();
+            queryString["TakeOffTime"] = schedule.TakeOffTime.ToString();
+            queryString["LandingTime"] = schedule.LandingTime.ToString();
+            queryString["PlaneTypeId"] = schedule.PlaneTypeId.ToString();
+
+            var result = await client.PostAsync($"api/Flight/newroute/{queryString}", null);
         }
     }
 }

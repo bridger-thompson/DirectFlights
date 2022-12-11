@@ -15,9 +15,9 @@ namespace DirectFlights.Client.Models
         [Required]
         public int ArrivalAirportId { get; set; }
         [Required]
-        public DateTime TakeOffTime { get; set; } = DateTime.Now;
+        public TimeOnly TakeOffTime { get; set; } = TimeOnly.FromDateTime(DateTime.Now);
         [Required]
-        public DateTime LandingTime { get; set; } = DateTime.Now.AddHours(2);
+        public TimeOnly LandingTime { get; set; } = TimeOnly.FromDateTime(DateTime.Now.AddHours(2));
         [Required]
         public int PlaneTypeId { get; set; }
     }
