@@ -1,6 +1,7 @@
 ﻿@using DirectFlights.Client.Services
 @using DirectFlights.Client.Models
 @inject FlightService service
+@inject NavigationManager navigation
 
 <div class="mx-3">
 	<h4>Create New Route:</h4>
@@ -197,5 +198,7 @@ else
 			PlaneTypeId = model.PlaneTypeId
 		};
 		await service.CreateNewFlightRoute(schedule);
+		var uri = navigation.Uri;
+		navigation.NavigateTo(uri, true);
 	}
 }
