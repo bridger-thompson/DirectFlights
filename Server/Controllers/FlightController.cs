@@ -27,6 +27,7 @@ namespace DirectFlights.Server.Controllers
         [HttpGet("{departAirport}/{arriveAirport}/{departDate}")]
         public async Task<IEnumerable<FlightDetailDTO>> GetFlights(string departAirport, string arriveAirport, string departDate)
         {
+            logger.LogInformation("Getting flights for depart airport {departAirport}, arrive airport {arriveAirport}, and date {departDate}", departAirport, arriveAirport, departDate);
             var flights = await app.GetFlights(departAirport, arriveAirport, departDate);
             return flights;
         }
@@ -34,6 +35,7 @@ namespace DirectFlights.Server.Controllers
         [HttpGet("airports")]
         public async Task<IEnumerable<Airport>> GetAirports()
         {
+            logger.LogInformation("Getting all airports");
             var airports = await app.GetAirports();
             return airports;
         }
@@ -41,6 +43,7 @@ namespace DirectFlights.Server.Controllers
         [HttpGet("airlines")]
         public async Task<IEnumerable<Airline>> GetAirlines()
         {
+            logger.LogInformation("Getting all airlines");
             var airlines = await app.GetAirlines();
             return airlines;
         }
@@ -48,6 +51,7 @@ namespace DirectFlights.Server.Controllers
         [HttpGet("planeTypes")]
         public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
         {
+            logger.LogInformation("Getting plane types");
             var planeType = await app.GetPlaneTypes();
             return planeType;
         }
@@ -55,6 +59,7 @@ namespace DirectFlights.Server.Controllers
         [HttpGet("{flightDetailId}")]
         public async Task<FlightDetailDTO> GetFlight(int flightDetailId)
         {
+            logger.LogInformation("Getting flight details for id {flightDetailId}", flightDetailId);
             return await app.GetFlight(flightDetailId);
         }
 
@@ -63,12 +68,15 @@ namespace DirectFlights.Server.Controllers
         {
             try
             {
+                logger.LogInformation("Attempting to create reservation for flight id {flightDetailId} for passenger {passenger}", flightDetailId, passenger);
                 Passenger user = new() { Id = null, Name = passenger };
-
                 await app.CreateReservation(flightDetailId, seatName, user);
+                logger.LogInformation("Created reservation");
+
             }
             catch
             {
+                logger.LogError("Failed to create reservation for flight id {flightDetailId} for passenger {passenger}", flightDetailId, passenger);
                 throw;
             }
         }
@@ -77,12 +85,14 @@ namespace DirectFlights.Server.Controllers
         public async Task<IEnumerable<FlightTotal>> GetFlightTotal(int upperLimit, long departDate)
         {
             var date = new DateTime(departDate, DateTimeKind.Utc);
+            logger.LogInformation("Getting flight totals for date {date}", date.ToString());
             return await app.GetFlightTotal(upperLimit, date);
         }
 
         [HttpGet("total/airlines")]
         public async Task<IEnumerable<AirlineTotal>> GetAirlineTotal()
         {
+            logger.LogInformation("Getting airline totals");
             var totals = await app.GetAirlineTotal();
             return totals;
         }
@@ -90,6 +100,7 @@ namespace DirectFlights.Server.Controllers
         [HttpGet("routes")]
         public async Task<IEnumerable<FlightScheduleTemplate>> GetFlightScheduleTemplates()
 		{
+            logger.LogInformation("Getting flight schedule template");
             var routes = await app.GetFlightScheduleTemplates();
             return routes;
 		}
@@ -97,6 +108,7 @@ namespace DirectFlights.Server.Controllers
         [HttpPost("newroute/{schedule}")]
         public async Task CreateNewFlightRoute(string schedule)
         {
+            logger.LogInformation("Creating new flight route for schedule {schedule}", schedule);
             NameValueCollection values = HttpUtility.ParseQueryString(schedule);
             var dictionary = values.AllKeys.ToDictionary(k => k, k => values[k]);
             
