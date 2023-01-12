@@ -6,9 +6,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+var tracePath = Path.Join(path, $"Log_DirectFlights_{DateTime.Now:yyyMMdd-HHmm}.txt");
+Trace.Listeners.Add(new TextWriterTraceListener(System.IO.File.CreateText(tracePath)));
+Trace.AutoFlush= true;
 
 builder.Services.AddControllers().AddJsonOptions(x =>
     x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);

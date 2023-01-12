@@ -8,51 +8,61 @@ namespace DirectFlights.Server.Repository
     {
         private readonly FlightDBContext context;
         private readonly ILogger<FlightRepo> logger;
+        private readonly ILogger factoryLogger;
 
-        public FlightRepo(FlightDBContext context, ILogger<FlightRepo> logger)
+        public FlightRepo(FlightDBContext context, ILogger<FlightRepo> logger, ILoggerFactory loggerFactory)
         {
             this.context = context;
             this.logger = logger;
+            factoryLogger = loggerFactory.CreateLogger("DataAccessLayer");
         }
         public async Task<IEnumerable<Airport>> GetAirports()
         {
             var airports = await context.Airports.ToListAsync();
+            factoryLogger.LogDebug("Retrieved airports: {airports}", airports);
             return airports;
         }
 
         public async Task<Airport> GetAirportById(int id)
         {
             var airport = await context.Airports.Where(a => a.Id == id).FirstOrDefaultAsync();
+            factoryLogger.LogDebug("Retrieved airport by id {id}: {airport}", id, airport);
             return airport;
         }
 
         public async Task<IEnumerable<Airline>> GetAirlines()
         {
             var airlines = await context.Airlines.ToListAsync();
+            factoryLogger.LogDebug("Retrieved airlines: {airlines}", airlines);
             return airlines;
         }
 
         public async Task<Airline> GetAirlineById(int id)
         {
             var airline = await context.Airlines.Where(a => a.Id == id).FirstOrDefaultAsync();
+            factoryLogger.LogDebug("Retrieved airline by id {id}: {airline}", id, airline);
             return airline;
         }
 
         public async Task<IEnumerable<PlaneType>> GetPlaneTypes()
         {
             var types = await context.PlaneTypes.ToListAsync();
+            factoryLogger.LogDebug("Retrieved plane types: {types}", types);
             return types;
         }
 
         public async Task<PlaneType> GetPlaneTypeById(int id)
         {
             var plane = await context.PlaneTypes.Where(a => a.Id == id).FirstOrDefaultAsync();
+            factoryLogger.LogDebug("Retrieved plane by id {id}: {plane}", id, plane);
             return plane;
         }
 
         public async Task<IEnumerable<FlightDetail>> GetAllFlightsOfId(int flightDetailId)
         {
-            return await context.FlightDetails.Where(f => f.Id == flightDetailId).ToListAsync();
+            var flights = await context.FlightDetails.Where(f => f.Id == flightDetailId).ToListAsync();
+            factoryLogger.LogDebug("Retrieved flight details by id {id}: {flights}", flightDetailId, flights);
+            return flights;
         }
 
         public async Task<IEnumerable<FlightDetail>> GetFlights(string departAirport, string arriveAirport, string departDate)
@@ -61,6 +71,7 @@ namespace DirectFlights.Server.Repository
             var flights = await context.FlightDetails
                 .Where(flight => flight.FromAirport == departAirport && flight.ToAirport == arriveAirport && flight.DepartureDate.Date == date.Date)
                 .ToListAsync();
+            factoryLogger.LogDebug("Retrieved flights with depart Airport {departAirport}, arrive Airport {arriveAirport}, and depart Date {date}", departAirport, arriveAirport, date.ToString());
             return flights;
         }
 
@@ -84,6 +95,7 @@ namespace DirectFlights.Server.Repository
                     Name = seat_class.Name,
                     Cost = flight_seat.SuggestedCost
                 };
+                factoryLogger.LogDebug("Retrieved seat by id {seatId}: {seat}", seatId, seat);
             }
             return seat;
         }
@@ -96,6 +108,7 @@ namespace DirectFlights.Server.Repository
             {
                 logger.LogError("Seat Class is null. Could not get seat: " + seatName);
             }
+            factoryLogger.LogDebug("Retrieved seat id by name {seatName}: {id}", seatName, seat.Id);
             return seat.Id;
         }
 
@@ -106,10 +119,11 @@ namespace DirectFlights.Server.Repository
             if (existing == null)
             {
                 logger.LogError($"Passenger doesn't exist with name {name}");
-            } 
+            }
             else
             {
                 passenger = existing;
+                factoryLogger.LogDebug("Found passenger with name {name}: {passenger}", name, passenger);
             }
             return passenger;
         }
@@ -117,14 +131,15 @@ namespace DirectFlights.Server.Repository
         public async Task<Passenger> CreatePassenger(Passenger passenger)
         {
             var existing = await context.Passengers.Where(f => f.Name == passenger.Name).FirstOrDefaultAsync();
-            if(existing != null)
+            if (existing != null)
             {
                 logger.LogError($"Passenger {passenger.Name} already exists");
-            } 
+            }
             else
             {
                 await context.Passengers.AddAsync(passenger);
                 await context.SaveChangesAsync();
+                factoryLogger.LogInformation("Created new passenger: {passenger}", passenger);
                 Passenger newPassenger = await context.Passengers.Where(f => f.Name == passenger.Name).FirstOrDefaultAsync();
                 return newPassenger;
             }
@@ -133,13 +148,13 @@ namespace DirectFlights.Server.Repository
 
         public async Task CreateFlightReservation(FlightReservation reservation)
         {
-            if(reservation != null)
+            if (reservation != null)
             {
                 try
                 {
                     await context.FlightReservations.AddAsync(reservation);
                     await context.SaveChangesAsync();
-                } 
+                }
                 catch (Exception e)
                 {
                     logger.LogError($"Flight reservation creation failed because of {e}");
@@ -183,10 +198,10 @@ namespace DirectFlights.Server.Repository
                 .ToListAsync();
             return routes;
         }
-    
+
         public async Task CreateFlightRoute(FlightScheduleTemplate template)
         {
-            if(template != null)
+            if (template != null)
             {
                 await context.FlightScheduleTemplates.AddAsync(template);
                 await context.SaveChangesAsync();
