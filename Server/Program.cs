@@ -1,6 +1,7 @@
 using DirectFlights.Server.Data;
 using DirectFlights.Server.Repository;
 using DirectFlights.Shared;
+using Hellang.Middleware.ProblemDetails;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -10,6 +11,17 @@ using System.Diagnostics;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddProblemDetails(opts =>
+{
+    opts.IncludeExceptionDetails = (ctx, ex) => false;
+    opts.OnBeforeWriteDetails = (ctx, dtls) =>
+    {
+        if (dtls.Status == 500)
+        {
+            dtls.Detail = "An error occurred in our API. Use the trace id when contacting us.";
+        }
+    };
+});
 
 var path = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 var tracePath = Path.Join(path, $"Log_DirectFlights_{DateTime.Now:yyyMMdd-HHmm}.txt");
@@ -36,6 +48,7 @@ builder.Services.AddControllers()
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
+app.UseProblemDetails();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 // Configure the HTTP request pipeline.
